@@ -1,0 +1,1198 @@
+blueprint:
+  name: "Dachluke Badentlüftung"
+  description: >
+    Steuert eine motorisierte Dachluke zur Badentlüftung nach dem Duschen.
+    Öffnet bei hoher Luftfeuchtigkeit, schließt wenn die Luft trocken ist
+    oder die maximale Öffnungsdauer abgelaufen ist.
+    Wetterkorrektur passt die Position an ohne den Timer zurückzusetzen.
+    Manuelle Steuerung über Kurz- und Lang-Tastendruck am Gerät und Remote.
+    Alarmo-Integration, optionaler Fensterkontakt, drei Benachrichtigungskanäle.
+  domain: automation
+  author: C4mp3r-Grey
+  homeassistant:
+    min_version: "2025.6.0"
+  source_url: https://github.com/C4mp3r-Grey/dachluke-badentlueftung/blob/main/blueprints/automation/dachluke_steuerung.yaml
+
+  input:
+
+    cover_section:
+      name: "🪟 Dachluke"
+      icon: mdi:window-open
+      input:
+        cover_entity:
+          name: Dachluke (Cover-Entität)
+          description: >
+            Steuerungsentität der Dachluke – nur für Befehle verwendet,
+            nicht für Positionsabfragen.
+          selector:
+            entity:
+              domain: cover
+        position_sensor:
+          name: Positionssensor (Kanal 3)
+          description: >
+            Zuverlässige Positionsrückmeldung 0–100%.
+            Muss in der Homematic(IP) Local Integration manuell
+            aktiviert werden (Unignore Parameters → Kanal 3 → LEVEL).
+            z. B. "sensor.dachluke_ch3".
+          selector:
+            entity:
+              domain: sensor
+        position_good_weather:
+          name: Öffnungsposition bei gutem Wetter (%)
+          default: 80
+          selector:
+            number:
+              min: 10
+              max: 100
+              step: 5
+              unit_of_measurement: "%"
+              mode: slider
+        position_bad_weather:
+          name: Öffnungsposition bei schlechtem Wetter (%)
+          default: 20
+          selector:
+            number:
+              min: 5
+              max: 50
+              step: 5
+              unit_of_measurement: "%"
+              mode: slider
+
+    button_section:
+      name: "🔘 Schalter & Fernbedienung"
+      icon: mdi:remote
+      input:
+        button_open_device:
+          name: Öffnen-Taste am Gerät
+          description: >
+            Event-Entität des Öffnen-Kanals am HmIP-BROLL,
+            z. B. "event.dachluke_ch1".
+            Kurz: Luke öffnet manuell.
+            Lang: Automation aktivieren.
+          selector:
+            entity:
+              domain: event
+        button_close_device:
+          name: Schließen-Taste am Gerät
+          description: >
+            Event-Entität des Schließen-Kanals am HmIP-BROLL,
+            z. B. "event.dachluke_ch2".
+            Kurz: Luke schließt + Pause.
+            Lang: Automation dauerhaft deaktivieren.
+          selector:
+            entity:
+              domain: event
+        remote_enabled:
+          name: Fernbedienung aktivieren
+          default: false
+          selector:
+            boolean:
+        button_open_remote:
+          name: Öffnen-Taste der Fernbedienung
+          description: >
+            z. B. "event.hmip_wrc6_bad_ch4".
+            Kurz: Luke öffnet. Lang: Automation aktivieren.
+          default: ""
+          selector:
+            entity:
+              domain: event
+        button_close_remote:
+          name: Schließen-Taste der Fernbedienung
+          description: >
+            z. B. "event.hmip_wrc6_bad_ch3".
+            Kurz: Luke schließt + Pause. Lang: Automation deaktivieren.
+          default: ""
+          selector:
+            entity:
+              domain: event
+
+    helper_section:
+      name: "🔧 Helfer"
+      icon: mdi:cog
+      input:
+        pause_helper:
+          name: Pause-Helfer (input_boolean)
+          description: >
+            Anlegen unter Einstellungen → Helfer → Toggle.
+            z. B. "input_boolean.dachluke_pause".
+          selector:
+            entity:
+              domain: input_boolean
+        timer_helper:
+          name: Timer (timer)
+          description: >
+            Anlegen unter Einstellungen → Helfer → Timer.
+            z. B. "timer.dachluke_lueftung".
+            Zählt die maximale Öffnungsdauer runter und schließt bei 0.
+          selector:
+            entity:
+              domain: timer
+        status_helper:
+          name: Status-Helfer (input_text)
+          description: >
+            Anlegen unter Einstellungen → Helfer → Text.
+            z. B. "input_text.dachluke_status".
+          selector:
+            entity:
+              domain: input_text
+
+    humidity_section:
+      name: "💧 Luftfeuchtigkeit"
+      icon: mdi:water-percent
+      input:
+        humidity_sensor:
+          name: Hygrometer
+          selector:
+            entity:
+              domain: sensor
+              device_class: humidity
+        humidity_threshold:
+          name: Schwellwert zum Öffnen (%)
+          description: Ab dieser Luftfeuchtigkeit öffnet die Luke.
+          default: 75
+          selector:
+            number:
+              min: 40
+              max: 100
+              step: 1
+              unit_of_measurement: "%"
+              mode: slider
+        humidity_hysteresis:
+          name: Hysterese zum Schließen (%)
+          description: >
+            Die Luke schließt erst wenn die Feuchtigkeit um diesen Wert
+            unter den Öffnungsschwellwert gefallen ist.
+            Bei 75% Schwellwert und 10% Hysterese schließt die Luke
+            erst bei 65%.
+          default: 10
+          selector:
+            number:
+              min: 1
+              max: 25
+              step: 1
+              unit_of_measurement: "%"
+              mode: slider
+
+    light_section:
+      name: "💡 Badezimmer-Lampe"
+      icon: mdi:lightbulb
+      input:
+        light_entities:
+          name: Lampe(n) im Badezimmer
+          description: >
+            Öffnungssperre – Luke öffnet nur wenn mindestens eine
+            Lampe an ist. Kein Einfluss auf das Schließen.
+          selector:
+            entity:
+              multiple: true
+              domain: light
+
+    weather_section:
+      name: "🌧️ Wetterschutz"
+      icon: mdi:weather-rainy
+      input:
+        weather_entity:
+          name: Wetterstation
+          description: >
+            Bei Wetterwechsel während die Luke offen ist wird die
+            Position angepasst ohne den Schließtimer zurückzusetzen.
+          selector:
+            entity:
+              domain: weather
+        bad_weather_conditions:
+          name: Schlechte Wetterzustände (Minimalöffnung)
+          default:
+            - rainy
+            - pouring
+            - snowy
+            - snowy-rainy
+            - lightning
+            - lightning-rainy
+            - hail
+            - windy-variant
+          selector:
+            select:
+              multiple: true
+              options:
+                - label: "🌧️ Regen"
+                  value: rainy
+                - label: "⛈️ Starkregen"
+                  value: pouring
+                - label: "❄️ Schnee"
+                  value: snowy
+                - label: "🌨️ Schneeregen"
+                  value: snowy-rainy
+                - label: "⚡ Gewitter"
+                  value: lightning
+                - label: "⛈️ Gewitter mit Regen"
+                  value: lightning-rainy
+                - label: "🌨️ Hagel"
+                  value: hail
+                - label: "💨 Sturm"
+                  value: windy-variant
+
+    timing_section:
+      name: "⏱️ Zeiten"
+      icon: mdi:timer
+      input:
+        max_open_duration:
+          name: Maximale Öffnungsdauer (Minuten)
+          description: >
+            Nach dieser Zeit schließt die Luke automatisch.
+            Der Timer zählt runter und schließt exakt bei 0.
+          default: 45
+          selector:
+            number:
+              min: 10
+              max: 120
+              step: 5
+              unit_of_measurement: "min"
+              mode: slider
+        pause_duration:
+          name: Pause nach manuellem Schließen (Minuten)
+          description: >
+            So lange pausiert die Automation nach kurzem Schließen.
+            Läuft automatisch ab.
+          default: 10
+          selector:
+            number:
+              min: 1
+              max: 60
+              step: 1
+              unit_of_measurement: "min"
+              mode: slider
+
+    contact_section:
+      name: "🔌 Fensterkontakt (optional)"
+      icon: mdi:dock-window
+      collapsed: true
+      input:
+        contact_sensor_enabled:
+          name: Fensterkontakt aktivieren
+          description: >
+            Plausibilitätsprüfung – meldet Widersprüche zwischen
+            Positionssensor und Kontaktsensor.
+          default: false
+          selector:
+            boolean:
+        contact_sensor:
+          name: Fensterkontakt (binary_sensor)
+          description: >
+            "on" = offen, "off" = geschlossen.
+            z. B. "binary_sensor.kontakt_bad_dachluke".
+          default: ""
+          selector:
+            entity:
+              domain: binary_sensor
+              device_class: window
+
+    alarm_section:
+      name: "🚨 Alarmo (optional)"
+      icon: mdi:shield-home
+      collapsed: true
+      input:
+        alarm_enabled:
+          name: Alarmo-Integration aktivieren
+          default: false
+          selector:
+            boolean:
+        alarm_entity:
+          name: Alarmo Entität
+          description: z. B. "alarm_control_panel.alarmo"
+          default: ""
+          selector:
+            entity:
+              domain: alarm_control_panel
+        alarm_states:
+          name: Sperrzustände
+          default:
+            - armed_away
+            - armed_night
+            - armed_vacation
+            - arming
+            - pending
+            - triggered
+          selector:
+            select:
+              multiple: true
+              options:
+                - label: "🏠 Scharf (Zuhause)"
+                  value: armed_home
+                - label: "🚗 Scharf (Abwesend)"
+                  value: armed_away
+                - label: "🌙 Scharf (Nacht)"
+                  value: armed_night
+                - label: "✈️ Scharf (Urlaub)"
+                  value: armed_vacation
+                - label: "⚙️ Scharf (Benutzerdefiniert)"
+                  value: armed_custom_bypass
+                - label: "⏳ Wird scharf geschaltet"
+                  value: arming
+                - label: "⚠️ Eintrittsverzögerung"
+                  value: pending
+                - label: "🚨 Alarm ausgelöst"
+                  value: triggered
+
+    notification_section:
+      name: "🔔 Benachrichtigungen"
+      icon: mdi:bell
+      input:
+        notify_app_enabled:
+          name: App-Benachrichtigung aktivieren
+          default: false
+          selector:
+            boolean:
+        notify_app_service:
+          name: App notify-Dienst
+          description: z. B. "notify.mobile_app_mein_handy"
+          default: "notify.notify"
+          selector:
+            text:
+        notify_persistent_enabled:
+          name: Dashboard-Popup aktivieren
+          default: true
+          selector:
+            boolean:
+        notify_alexa_enabled:
+          name: Alexa-Sprachausgabe aktivieren
+          description: >
+            Sprachausgabe via offizielle Alexa Devices Integration
+            (HA 2025.6+). Verwendet notify.send_message mit SSML.
+          default: false
+          selector:
+            boolean:
+        notify_alexa_entity:
+          name: Alexa Speak-Entität
+          description: z. B. "notify.echo_bad_sprechen"
+          default: "notify.echo_bad_sprechen"
+          selector:
+            entity:
+              domain: notify
+        notify_alexa_volume:
+          name: Alexa Lautstärke
+          description: SSML-Lautstärke der Sprachausgabe.
+          default: soft
+          selector:
+            select:
+              options:
+                - label: "🔈 Sehr leise"
+                  value: x-soft
+                - label: "🔉 Leise"
+                  value: soft
+                - label: "🔊 Normal"
+                  value: medium
+                - label: "📢 Laut"
+                  value: loud
+                - label: "📣 Sehr laut"
+                  value: x-loud
+
+variables:
+  humidity_sensor: !input humidity_sensor
+  humidity_threshold: !input humidity_threshold
+  humidity_hysteresis: !input humidity_hysteresis
+  bad_weather_conditions: !input bad_weather_conditions
+  light_entities: !input light_entities
+  max_open_duration: !input max_open_duration
+  pause_duration: !input pause_duration
+  weather_entity: !input weather_entity
+  cover_entity: !input cover_entity
+  position_sensor: !input position_sensor
+  position_good_weather: !input position_good_weather
+  position_bad_weather: !input position_bad_weather
+  pause_helper: !input pause_helper
+  timer_helper: !input timer_helper
+  status_helper: !input status_helper
+  remote_enabled: !input remote_enabled
+  contact_sensor_enabled: !input contact_sensor_enabled
+  contact_sensor: !input contact_sensor
+  alarm_enabled: !input alarm_enabled
+  alarm_entity: !input alarm_entity
+  alarm_states: !input alarm_states
+  notify_app_enabled: !input notify_app_enabled
+  notify_app_service: !input notify_app_service
+  notify_persistent_enabled: !input notify_persistent_enabled
+  notify_alexa_enabled: !input notify_alexa_enabled
+  notify_alexa_entity: !input notify_alexa_entity
+  notify_alexa_volume: !input notify_alexa_volume
+  # Zielposition abhängig vom aktuellen Wetter
+  target_position: >
+    {% if states(weather_entity) in bad_weather_conditions %}
+      {{ position_bad_weather | int }}
+    {% else %}
+      {{ position_good_weather | int }}
+    {% endif %}
+  # Schließschwellwert mit Hysterese
+  close_threshold: >
+    {{ (humidity_threshold | float) - (humidity_hysteresis | float) }}
+  # Sensor verfügbar?
+  sensor_available: >
+    {{ states(humidity_sensor) not in ['unavailable', 'unknown', 'none'] }}
+  # Luke offen? Zuverlässig über Kanal 3
+  is_open: >
+    {{ states(position_sensor) | float(0) > 0 }}
+  # Alarm gesperrt?
+  alarm_blocked: >
+    {% if alarm_enabled %}
+      {{ states(alarm_entity) in alarm_states }}
+    {% else %}
+      false
+    {% endif %}
+  # Plausibilitätsprüfung Kontaktsensor vs. Positionssensor
+  contact_mismatch: >
+    {% if contact_sensor_enabled
+       and states(contact_sensor) not in ['unavailable', 'unknown'] %}
+      {% set sensor_open = states(position_sensor) | float(0) > 0 %}
+      {% set contact_open = states(contact_sensor) == 'on' %}
+      {{ sensor_open != contact_open }}
+    {% else %}
+      false
+    {% endif %}
+
+triggers:
+  # Feuchtigkeit steigt über Schwellwert
+  - trigger: numeric_state
+    entity_id: !input humidity_sensor
+    above: !input humidity_threshold
+    id: humidity_high
+
+  # Feuchtigkeit fällt (Hysterese-Prüfung in Action-Condition)
+  - trigger: numeric_state
+    entity_id: !input humidity_sensor
+    below: 100
+    id: humidity_ok
+
+  # Timer abgelaufen → Zwangsschließung
+  - trigger: event
+    event_type: timer.finished
+    event_data:
+      entity_id: !input timer_helper
+    id: timer_elapsed
+
+  # Wetter ändert sich → Position ggf. korrigieren
+  - trigger: state
+    entity_id: !input weather_entity
+    id: weather_changed
+
+  # Öffnen kurz – Gerät
+  - trigger: state
+    entity_id: !input button_open_device
+    attribute: event_type
+    to: press_short
+    id: manual_open
+
+  # Öffnen lang – Gerät → Automation aktivieren
+  - trigger: state
+    entity_id: !input button_open_device
+    attribute: event_type
+    to: press_long_release
+    id: automation_enable
+
+  # Schließen kurz – Gerät → Pause
+  - trigger: state
+    entity_id: !input button_close_device
+    attribute: event_type
+    to: press_short
+    id: manual_close
+
+  # Schließen lang – Gerät → dauerhaft deaktivieren
+  - trigger: state
+    entity_id: !input button_close_device
+    attribute: event_type
+    to: press_long_release
+    id: automation_disable
+
+  # Öffnen kurz – Remote
+  - trigger: state
+    entity_id: !input button_open_remote
+    attribute: event_type
+    to: press_short
+    id: manual_open
+
+  # Öffnen lang – Remote → Automation aktivieren
+  - trigger: state
+    entity_id: !input button_open_remote
+    attribute: event_type
+    to: press_long_release
+    id: automation_enable
+
+  # Schließen kurz – Remote → Pause
+  - trigger: state
+    entity_id: !input button_close_remote
+    attribute: event_type
+    to: press_short
+    id: manual_close
+
+  # Schließen lang – Remote → dauerhaft deaktivieren
+  - trigger: state
+    entity_id: !input button_close_remote
+    attribute: event_type
+    to: press_long_release
+    id: automation_disable
+
+  # Alarm
+  - trigger: state
+    entity_id: !input alarm_entity
+    id: alarm_changed
+
+actions:
+  # Sensor verfügbar? Wenn nicht: nur Timer-Schließung erlaubt
+  - if:
+      - condition: template
+        value_template: >
+          {{ not sensor_available
+             and trigger.id not in ['timer_elapsed', 'manual_close',
+                                    'automation_enable', 'automation_disable'] }}
+    then:
+      - stop: "Sensor nicht verfügbar"
+
+  - choose:
+
+      # ── AUTOMATION DEAKTIVIEREN: langer Schließ-Druck ────────────────────
+      - conditions:
+          - condition: trigger
+            id: automation_disable
+        sequence:
+          - action: input_boolean.turn_on
+            target:
+              entity_id: !input pause_helper
+          - action: timer.cancel
+            target:
+              entity_id: !input timer_helper
+          - if:
+              - condition: template
+                value_template: "{{ notify_app_enabled }}"
+            then:
+              - action: "{{ notify_app_service }}"
+                data:
+                  title: "🔴 Automation deaktiviert"
+                  message: >
+                    Dachluke Automation dauerhaft deaktiviert.
+                    Langer Druck Öffnen zum Reaktivieren.
+          - if:
+              - condition: template
+                value_template: "{{ notify_persistent_enabled }}"
+            then:
+              - action: persistent_notification.create
+                data:
+                  notification_id: dachluke_bad
+                  title: "🔴 Automation deaktiviert"
+                  message: "Langer Druck Öffnen zum Reaktivieren."
+              - action: input_text.set_value
+                target:
+                  entity_id: !input status_helper
+                data:
+                  value: >
+                    {{ now().strftime('%d.%m. %H:%M') }} –
+                    🔴 Automation deaktiviert
+          - if:
+              - condition: template
+                value_template: "{{ notify_alexa_enabled }}"
+            then:
+              - action: notify.send_message
+                data:
+                  message: >
+                    <prosody volume='{{ notify_alexa_volume }}'>
+                    Dachluke Automatik deaktiviert.
+                    </prosody>
+                target:
+                  entity_id: "{{ notify_alexa_entity }}"
+
+      # ── AUTOMATION AKTIVIEREN: langer Öffnen-Druck ───────────────────────
+      - conditions:
+          - condition: trigger
+            id: automation_enable
+        sequence:
+          - action: input_boolean.turn_off
+            target:
+              entity_id: !input pause_helper
+          - if:
+              - condition: template
+                value_template: "{{ notify_app_enabled }}"
+            then:
+              - action: "{{ notify_app_service }}"
+                data:
+                  title: "🟢 Automation aktiv"
+                  message: "Dachluke Automation wieder aktiv."
+          - if:
+              - condition: template
+                value_template: "{{ notify_persistent_enabled }}"
+            then:
+              - action: persistent_notification.create
+                data:
+                  notification_id: dachluke_bad
+                  title: "🟢 Automation aktiv"
+                  message: "Dachluke Automation wieder aktiv."
+              - action: input_text.set_value
+                target:
+                  entity_id: !input status_helper
+                data:
+                  value: >
+                    {{ now().strftime('%d.%m. %H:%M') }} –
+                    🟢 Automation aktiviert
+          - if:
+              - condition: template
+                value_template: "{{ notify_alexa_enabled }}"
+            then:
+              - action: notify.send_message
+                data:
+                  message: >
+                    <prosody volume='{{ notify_alexa_volume }}'>
+                    Dachluke Automatik aktiviert.
+                    </prosody>
+                target:
+                  entity_id: "{{ notify_alexa_entity }}"
+
+      # ── MANUELLES SCHLIEßEN: kurzer Druck → Pause ────────────────────────
+      - conditions:
+          - condition: trigger
+            id: manual_close
+        sequence:
+          - action: cover.close_cover
+            target:
+              entity_id: !input cover_entity
+          - action: input_boolean.turn_on
+            target:
+              entity_id: !input pause_helper
+          - action: timer.cancel
+            target:
+              entity_id: !input timer_helper
+          - if:
+              - condition: template
+                value_template: "{{ notify_app_enabled }}"
+            then:
+              - action: "{{ notify_app_service }}"
+                data:
+                  title: "⏸️ Dachluke pausiert"
+                  message: >
+                    Luke manuell geschlossen –
+                    Automation pausiert für {{ pause_duration }} min.
+                    Langer Druck Öffnen zum dauerhaften Aktivieren.
+          - if:
+              - condition: template
+                value_template: "{{ notify_persistent_enabled }}"
+            then:
+              - action: persistent_notification.create
+                data:
+                  notification_id: dachluke_bad
+                  title: "⏸️ Automation pausiert"
+                  message: >
+                    Luke manuell geschlossen –
+                    pausiert für {{ pause_duration }} min.
+              - action: input_text.set_value
+                target:
+                  entity_id: !input status_helper
+                data:
+                  value: >
+                    {{ now().strftime('%d.%m. %H:%M') }} –
+                    ⏸️ Manuell geschlossen, Pause {{ pause_duration }} min
+          - if:
+              - condition: template
+                value_template: "{{ notify_alexa_enabled }}"
+            then:
+              - action: notify.send_message
+                data:
+                  message: >
+                    <prosody volume='{{ notify_alexa_volume }}'>
+                    Dachluke geschlossen. Automatik pausiert.
+                    </prosody>
+                target:
+                  entity_id: "{{ notify_alexa_entity }}"
+          # Pause läuft nach pause_duration Minuten ab
+          - delay:
+              minutes: "{{ pause_duration | int }}"
+          - action: input_boolean.turn_off
+            target:
+              entity_id: !input pause_helper
+          - if:
+              - condition: template
+                value_template: "{{ notify_persistent_enabled }}"
+            then:
+              - action: input_text.set_value
+                target:
+                  entity_id: !input status_helper
+                data:
+                  value: >
+                    {{ now().strftime('%d.%m. %H:%M') }} –
+                    ▶️ Pause abgelaufen, Automation wieder aktiv
+
+      # ── ZWANGSSCHLIESSEN: Timer abgelaufen ───────────────────────────────
+      - conditions:
+          - condition: trigger
+            id: timer_elapsed
+        sequence:
+          - action: cover.close_cover
+            target:
+              entity_id: !input cover_entity
+          - if:
+              - condition: template
+                value_template: "{{ notify_app_enabled }}"
+            then:
+              - action: "{{ notify_app_service }}"
+                data:
+                  title: "⏱️ Dachluke geschlossen"
+                  message: >
+                    Maximale Öffnungsdauer erreicht –
+                    Luke wurde automatisch geschlossen.
+          - if:
+              - condition: template
+                value_template: "{{ notify_persistent_enabled }}"
+            then:
+              - action: persistent_notification.create
+                data:
+                  notification_id: dachluke_bad
+                  title: "⏱️ Dachluke geschlossen"
+                  message: >
+                    Maximale Öffnungsdauer erreicht –
+                    Luke wurde automatisch geschlossen.
+              - action: input_text.set_value
+                target:
+                  entity_id: !input status_helper
+                data:
+                  value: >
+                    {{ now().strftime('%d.%m. %H:%M') }} –
+                    ⏱️ Zwangsschließung – Max. Zeit erreicht
+          - if:
+              - condition: template
+                value_template: "{{ notify_alexa_enabled }}"
+            then:
+              - action: notify.send_message
+                data:
+                  message: >
+                    <prosody volume='{{ notify_alexa_volume }}'>
+                    Maximale Lüftungszeit erreicht. Dachluke geschlossen.
+                    </prosody>
+                target:
+                  entity_id: "{{ notify_alexa_entity }}"
+
+      # ── ALARMO: Alarm → sofort schließen + deaktivieren ──────────────────
+      - conditions:
+          - condition: trigger
+            id: alarm_changed
+          - condition: template
+            value_template: "{{ alarm_enabled and alarm_blocked }}"
+          - condition: template
+            value_template: "{{ is_open }}"
+        sequence:
+          - action: cover.close_cover
+            target:
+              entity_id: !input cover_entity
+          - action: input_boolean.turn_on
+            target:
+              entity_id: !input pause_helper
+          - action: timer.cancel
+            target:
+              entity_id: !input timer_helper
+          - if:
+              - condition: template
+                value_template: "{{ notify_app_enabled }}"
+            then:
+              - action: "{{ notify_app_service }}"
+                data:
+                  title: "🚨 Dachluke geschlossen"
+                  message: >
+                    Alarm ({{ states(alarm_entity) }}) –
+                    Luke geschlossen und Automation deaktiviert.
+          - if:
+              - condition: template
+                value_template: "{{ notify_persistent_enabled }}"
+            then:
+              - action: persistent_notification.create
+                data:
+                  notification_id: dachluke_bad
+                  title: "🚨 Dachluke geschlossen"
+                  message: >
+                    Alarm ({{ states(alarm_entity) }}) –
+                    Luke geschlossen und Automation deaktiviert.
+              - action: input_text.set_value
+                target:
+                  entity_id: !input status_helper
+                data:
+                  value: >
+                    {{ now().strftime('%d.%m. %H:%M') }} –
+                    🚨 Alarm aktiv, Luke gesperrt
+          - if:
+              - condition: template
+                value_template: "{{ notify_alexa_enabled }}"
+            then:
+              - action: notify.send_message
+                data:
+                  message: >
+                    <prosody volume='{{ notify_alexa_volume }}'>
+                    Alarm aktiviert. Dachluke geschlossen.
+                    </prosody>
+                target:
+                  entity_id: "{{ notify_alexa_entity }}"
+
+      # ── WETTERKORREKTUR: Position anpassen ohne Timer zurückzusetzen ──────
+      - conditions:
+          - condition: trigger
+            id: weather_changed
+          - condition: template
+            value_template: "{{ is_open }}"
+          - condition: state
+            entity_id: !input pause_helper
+            state: "off"
+        sequence:
+          - action: cover.set_cover_position
+            target:
+              entity_id: !input cover_entity
+            data:
+              position: "{{ target_position | int }}"
+          - if:
+              - condition: template
+                value_template: "{{ notify_app_enabled }}"
+            then:
+              - action: "{{ notify_app_service }}"
+                data:
+                  title: "🪟 Dachluke angepasst"
+                  message: >
+                    Wetter: {{ states(weather_entity) }} –
+                    Position auf {{ target_position }}% korrigiert.
+          - if:
+              - condition: template
+                value_template: "{{ notify_persistent_enabled }}"
+            then:
+              - action: persistent_notification.create
+                data:
+                  notification_id: dachluke_bad
+                  title: "🪟 Dachluke angepasst"
+                  message: >
+                    Wetter: {{ states(weather_entity) }} –
+                    Position auf {{ target_position }}% korrigiert.
+              - action: input_text.set_value
+                target:
+                  entity_id: !input status_helper
+                data:
+                  value: >
+                    {{ now().strftime('%d.%m. %H:%M') }} –
+                    🌧️ Wetter {{ states(weather_entity) }},
+                    Position {{ target_position }}%
+          - if:
+              - condition: template
+                value_template: "{{ notify_alexa_enabled }}"
+            then:
+              - action: notify.send_message
+                data:
+                  message: >
+                    <prosody volume='{{ notify_alexa_volume }}'>
+                    Dachluke wegen Wetter angepasst.
+                    </prosody>
+                target:
+                  entity_id: "{{ notify_alexa_entity }}"
+
+      # ── ÖFFNEN MANUELL: kurzer Öffnen-Druck ──────────────────────────────
+      - conditions:
+          - condition: trigger
+            id: manual_open
+          - condition: template
+            value_template: >
+              {{ expand(light_entities)
+                 | selectattr('state', 'eq', 'on')
+                 | list | count > 0 }}
+          - condition: template
+            value_template: "{{ not alarm_blocked }}"
+          - condition: state
+            entity_id: !input pause_helper
+            state: "off"
+        sequence:
+          - action: cover.set_cover_position
+            target:
+              entity_id: !input cover_entity
+            data:
+              position: "{{ target_position | int }}"
+          - action: timer.start
+            target:
+              entity_id: !input timer_helper
+            data:
+              duration: "{{ max_open_duration | int * 60 }}"
+          - if:
+              - condition: template
+                value_template: "{{ notify_app_enabled }}"
+            then:
+              - action: "{{ notify_app_service }}"
+                data:
+                  title: "🪟 Dachluke geöffnet"
+                  message: >
+                    Manuell geöffnet – {{ target_position }}%
+                    ({{ states(humidity_sensor) }}% rH,
+                    Wetter: {{ states(weather_entity) }}).
+                    Schließt nach {{ max_open_duration }} min.
+          - if:
+              - condition: template
+                value_template: "{{ notify_persistent_enabled }}"
+            then:
+              - action: persistent_notification.create
+                data:
+                  notification_id: dachluke_bad
+                  title: "🪟 Dachluke geöffnet"
+                  message: >
+                    Manuell geöffnet – {{ target_position }}%
+                    ({{ states(humidity_sensor) }}% rH).
+              - action: input_text.set_value
+                target:
+                  entity_id: !input status_helper
+                data:
+                  value: >
+                    {{ now().strftime('%d.%m. %H:%M') }} –
+                    🪟 Manuell geöffnet {{ target_position }}%,
+                    {{ states(humidity_sensor) }}% rH
+          - if:
+              - condition: template
+                value_template: "{{ notify_alexa_enabled }}"
+            then:
+              - action: notify.send_message
+                data:
+                  message: >
+                    <prosody volume='{{ notify_alexa_volume }}'>
+                    Dachluke manuell geöffnet.
+                    </prosody>
+                target:
+                  entity_id: "{{ notify_alexa_entity }}"
+
+      # ── ÖFFNEN AUTO: Feuchtigkeit hoch + Licht an + geschlossen ──────────
+      - conditions:
+          - condition: trigger
+            id: humidity_high
+          - condition: template
+            value_template: >
+              {{ expand(light_entities)
+                 | selectattr('state', 'eq', 'on')
+                 | list | count > 0 }}
+          - condition: template
+            value_template: "{{ not is_open }}"
+          - condition: template
+            value_template: "{{ not alarm_blocked }}"
+          - condition: state
+            entity_id: !input pause_helper
+            state: "off"
+        sequence:
+          - action: cover.set_cover_position
+            target:
+              entity_id: !input cover_entity
+            data:
+              position: "{{ target_position | int }}"
+          - action: timer.start
+            target:
+              entity_id: !input timer_helper
+            data:
+              duration: "{{ max_open_duration | int * 60 }}"
+          - if:
+              - condition: template
+                value_template: "{{ notify_app_enabled }}"
+            then:
+              - action: "{{ notify_app_service }}"
+                data:
+                  title: "🪟 Dachluke geöffnet"
+                  message: >
+                    Badentlüftung aktiv – {{ target_position }}% geöffnet
+                    ({{ states(humidity_sensor) }}% Luftfeuchte,
+                    Wetter: {{ states(weather_entity) }}).
+                    Schließt nach {{ max_open_duration }} min.
+          - if:
+              - condition: template
+                value_template: "{{ notify_persistent_enabled }}"
+            then:
+              - action: persistent_notification.create
+                data:
+                  notification_id: dachluke_bad
+                  title: "🪟 Dachluke geöffnet"
+                  message: >
+                    Badentlüftung aktiv – {{ target_position }}% geöffnet
+                    ({{ states(humidity_sensor) }}% Luftfeuchte,
+                    Wetter: {{ states(weather_entity) }}).
+              - action: input_text.set_value
+                target:
+                  entity_id: !input status_helper
+                data:
+                  value: >
+                    {{ now().strftime('%d.%m. %H:%M') }} –
+                    🪟 Geöffnet {{ target_position }}%,
+                    {{ states(humidity_sensor) }}% rH
+          - if:
+              - condition: template
+                value_template: "{{ notify_alexa_enabled }}"
+            then:
+              - action: notify.send_message
+                data:
+                  message: >
+                    <prosody volume='{{ notify_alexa_volume }}'>
+                    Dachluke geöffnet. Lüftung aktiv.
+                    </prosody>
+                target:
+                  entity_id: "{{ notify_alexa_entity }}"
+
+      # ── ÖFFNEN AUTO: Feuchtigkeit hoch + Licht an + bereits offen ────────
+      - conditions:
+          - condition: trigger
+            id: humidity_high
+          - condition: template
+            value_template: >
+              {{ expand(light_entities)
+                 | selectattr('state', 'eq', 'on')
+                 | list | count > 0 }}
+          - condition: template
+            value_template: "{{ is_open }}"
+          - condition: template
+            value_template: "{{ not alarm_blocked }}"
+          - condition: state
+            entity_id: !input pause_helper
+            state: "off"
+        sequence:
+          - action: cover.set_cover_position
+            target:
+              entity_id: !input cover_entity
+            data:
+              position: "{{ target_position | int }}"
+          - if:
+              - condition: template
+                value_template: "{{ notify_app_enabled }}"
+            then:
+              - action: "{{ notify_app_service }}"
+                data:
+                  title: "🪟 Dachluke angepasst"
+                  message: >
+                    Lüftung läuft – Position auf {{ target_position }}%
+                    (Wetter: {{ states(weather_entity) }}).
+          - if:
+              - condition: template
+                value_template: "{{ notify_persistent_enabled }}"
+            then:
+              - action: persistent_notification.create
+                data:
+                  notification_id: dachluke_bad
+                  title: "🪟 Dachluke angepasst"
+                  message: >
+                    Lüftung läuft – Position auf {{ target_position }}%
+                    (Wetter: {{ states(weather_entity) }}).
+              - action: input_text.set_value
+                target:
+                  entity_id: !input status_helper
+                data:
+                  value: >
+                    {{ now().strftime('%d.%m. %H:%M') }} –
+                    🔄 Position {{ target_position }}%,
+                    {{ states(humidity_sensor) }}% rH
+          - if:
+              - condition: template
+                value_template: "{{ notify_alexa_enabled }}"
+            then:
+              - action: notify.send_message
+                data:
+                  message: >
+                    <prosody volume='{{ notify_alexa_volume }}'>
+                    Dachluke angepasst.
+                    </prosody>
+                target:
+                  entity_id: "{{ notify_alexa_entity }}"
+
+      # ── SCHLIESSEN AUTO: Feuchtigkeit unter Hysterese ────────────────────
+      - conditions:
+          - condition: trigger
+            id: humidity_ok
+          - condition: template
+            value_template: "{{ is_open }}"
+          - condition: template
+            value_template: >
+              {{ states(humidity_sensor) | float(0) < close_threshold | float }}
+        sequence:
+          - action: cover.close_cover
+            target:
+              entity_id: !input cover_entity
+          - action: timer.cancel
+            target:
+              entity_id: !input timer_helper
+          - if:
+              - condition: template
+                value_template: "{{ notify_app_enabled }}"
+            then:
+              - action: "{{ notify_app_service }}"
+                data:
+                  title: "✅ Dachluke geschlossen"
+                  message: >
+                    Lüftung abgeschlossen –
+                    Luftfeuchtigkeit wieder bei {{ states(humidity_sensor) }}%.
+          - if:
+              - condition: template
+                value_template: "{{ notify_persistent_enabled }}"
+            then:
+              - action: persistent_notification.create
+                data:
+                  notification_id: dachluke_bad
+                  title: "✅ Dachluke geschlossen"
+                  message: >
+                    Lüftung abgeschlossen –
+                    Luftfeuchtigkeit wieder bei {{ states(humidity_sensor) }}%.
+              - action: input_text.set_value
+                target:
+                  entity_id: !input status_helper
+                data:
+                  value: >
+                    {{ now().strftime('%d.%m. %H:%M') }} –
+                    ✅ Geschlossen, {{ states(humidity_sensor) }}% rH
+          - if:
+              - condition: template
+                value_template: "{{ notify_alexa_enabled }}"
+            then:
+              - action: notify.send_message
+                data:
+                  message: >
+                    <prosody volume='{{ notify_alexa_volume }}'>
+                    Lüftung abgeschlossen. Dachluke geschlossen.
+                    </prosody>
+                target:
+                  entity_id: "{{ notify_alexa_entity }}"
+
+      # ── PLAUSIBILITÄT: Kontaktsensor vs. Positionssensor ─────────────────
+      - conditions:
+          - condition: template
+            value_template: "{{ contact_mismatch }}"
+        sequence:
+          - if:
+              - condition: template
+                value_template: "{{ notify_app_enabled }}"
+            then:
+              - action: "{{ notify_app_service }}"
+                data:
+                  title: "⚠️ Dachluke Fehler"
+                  message: >
+                    Widerspruch: Positionssensor meldet
+                    {% if is_open %}offen{% else %}geschlossen{% endif %}
+                    ({{ states(position_sensor) }}%),
+                    Kontaktsensor meldet
+                    {% if states(contact_sensor) == 'on' %}
+                    offen{% else %}geschlossen{% endif %}.
+                    Bitte prüfen!
+          - if:
+              - condition: template
+                value_template: "{{ notify_persistent_enabled }}"
+            then:
+              - action: persistent_notification.create
+                data:
+                  notification_id: dachluke_bad_fehler
+                  title: "⚠️ Dachluke Fehler"
+                  message: >
+                    Widerspruch: Positionssensor ({{ states(position_sensor) }}%)
+                    vs. Kontaktsensor – bitte prüfen!
+              - action: input_text.set_value
+                target:
+                  entity_id: !input status_helper
+                data:
+                  value: >
+                    {{ now().strftime('%d.%m. %H:%M') }} –
+                    ⚠️ Fehler: Kontaktsensor widerspricht Positionssensor!
+          - if:
+              - condition: template
+                value_template: "{{ notify_alexa_enabled }}"
+            then:
+              - action: notify.send_message
+                data:
+                  message: >
+                    <prosody volume='{{ notify_alexa_volume }}'>
+                    Achtung! Dachluke Fehler.
+                    Kontaktsensor widerspricht Positionssensor.
+                    </prosody>
+                target:
+                  entity_id: "{{ notify_alexa_entity }}"
+
+mode: single
+max_exceeded: silent
