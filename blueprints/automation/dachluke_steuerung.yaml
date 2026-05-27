@@ -1,3 +1,4 @@
+# Version: 0.4.1
 blueprint:
   name: "Dachluke Badentlüftung"
   description: >
@@ -119,7 +120,7 @@ blueprint:
             entity:
               domain: input_boolean
         timer_helper:
-          name: Timer (timer)
+          name: Timer
           description: >
             Anlegen unter Einstellungen → Helfer → Timer.
             z. B. "timer.dachluke_lueftung".
@@ -250,9 +251,7 @@ blueprint:
               mode: slider
         pause_duration:
           name: Pause nach manuellem Schließen (Minuten)
-          description: >
-            So lange pausiert die Automation nach kurzem Schließen.
-            Läuft automatisch ab.
+          description: Läuft automatisch ab.
           default: 10
           selector:
             number:
@@ -269,9 +268,6 @@ blueprint:
       input:
         contact_sensor_enabled:
           name: Fensterkontakt aktivieren
-          description: >
-            Plausibilitätsprüfung – meldet Widersprüche zwischen
-            Positionssensor und Kontaktsensor.
           default: false
           selector:
             boolean:
@@ -363,8 +359,11 @@ blueprint:
             boolean:
         notify_alexa_entity:
           name: Alexa Speak-Entität
-          description: z. B. "notify.echo_bad_sprechen"
-          default: "notify.echo_bad_sprechen"
+          description: >
+            Die "Sprechen"-Notify-Entität des Echo-Geräts,
+            z. B. "notify.echo_bad_sprechen".
+            Nur relevant wenn Alexa-Ansage aktiviert.
+          default: ""
           selector:
             entity:
               domain: notify
@@ -447,6 +446,10 @@ variables:
     {% else %}
       false
     {% endif %}
+  # Alexa-Ansage nur wenn aktiviert UND Entity gesetzt
+  alexa_ready: >
+    {{ notify_alexa_enabled
+       and notify_alexa_entity not in ['', none, 'unavailable', 'unknown'] }}
 
 triggers:
   # Feuchtigkeit steigt über Schwellwert
@@ -535,7 +538,7 @@ triggers:
     id: alarm_changed
 
 actions:
-  # Sensor verfügbar? Wenn nicht: nur Timer-Schließung erlaubt
+  # Sensor nicht verfügbar → nur Timer-Schließung und manuelle Befehle erlaubt
   - if:
       - condition: template
         value_template: >
@@ -586,7 +589,7 @@ actions:
                     🔴 Automation deaktiviert
           - if:
               - condition: template
-                value_template: "{{ notify_alexa_enabled }}"
+                value_template: "{{ alexa_ready }}"
             then:
               - action: notify.send_message
                 data:
@@ -631,7 +634,7 @@ actions:
                     🟢 Automation aktiviert
           - if:
               - condition: template
-                value_template: "{{ notify_alexa_enabled }}"
+                value_template: "{{ alexa_ready }}"
             then:
               - action: notify.send_message
                 data:
@@ -687,7 +690,7 @@ actions:
                     ⏸️ Manuell geschlossen, Pause {{ pause_duration }} min
           - if:
               - condition: template
-                value_template: "{{ notify_alexa_enabled }}"
+                value_template: "{{ alexa_ready }}"
             then:
               - action: notify.send_message
                 data:
@@ -697,7 +700,7 @@ actions:
                     </prosody>
                 target:
                   entity_id: "{{ notify_alexa_entity }}"
-          # Pause läuft nach pause_duration Minuten ab
+          # Pause läuft nach pause_duration Minuten automatisch ab
           - delay:
               minutes: "{{ pause_duration | int }}"
           - action: input_boolean.turn_off
@@ -753,7 +756,7 @@ actions:
                     ⏱️ Zwangsschließung – Max. Zeit erreicht
           - if:
               - condition: template
-                value_template: "{{ notify_alexa_enabled }}"
+                value_template: "{{ alexa_ready }}"
             then:
               - action: notify.send_message
                 data:
@@ -812,7 +815,7 @@ actions:
                     🚨 Alarm aktiv, Luke gesperrt
           - if:
               - condition: template
-                value_template: "{{ notify_alexa_enabled }}"
+                value_template: "{{ alexa_ready }}"
             then:
               - action: notify.send_message
                 data:
@@ -869,7 +872,7 @@ actions:
                     Position {{ target_position }}%
           - if:
               - condition: template
-                value_template: "{{ notify_alexa_enabled }}"
+                value_template: "{{ alexa_ready }}"
             then:
               - action: notify.send_message
                 data:
@@ -938,7 +941,7 @@ actions:
                     {{ states(humidity_sensor) }}% rH
           - if:
               - condition: template
-                value_template: "{{ notify_alexa_enabled }}"
+                value_template: "{{ alexa_ready }}"
             then:
               - action: notify.send_message
                 data:
@@ -1010,7 +1013,7 @@ actions:
                     {{ states(humidity_sensor) }}% rH
           - if:
               - condition: template
-                value_template: "{{ notify_alexa_enabled }}"
+                value_template: "{{ alexa_ready }}"
             then:
               - action: notify.send_message
                 data:
@@ -1074,7 +1077,7 @@ actions:
                     {{ states(humidity_sensor) }}% rH
           - if:
               - condition: template
-                value_template: "{{ notify_alexa_enabled }}"
+                value_template: "{{ alexa_ready }}"
             then:
               - action: notify.send_message
                 data:
@@ -1131,7 +1134,7 @@ actions:
                     ✅ Geschlossen, {{ states(humidity_sensor) }}% rH
           - if:
               - condition: template
-                value_template: "{{ notify_alexa_enabled }}"
+                value_template: "{{ alexa_ready }}"
             then:
               - action: notify.send_message
                 data:
@@ -1182,7 +1185,7 @@ actions:
                     ⚠️ Fehler: Kontaktsensor widerspricht Positionssensor!
           - if:
               - condition: template
-                value_template: "{{ notify_alexa_enabled }}"
+                value_template: "{{ alexa_ready }}"
             then:
               - action: notify.send_message
                 data:
