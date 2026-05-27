@@ -1,0 +1,6 @@
+{
+  "name": "Dachluke Badentlüftung",
+  "content_in_root": false,
+  "blueprint": true,
+  "homeassistant": "2025.6.0"
+}
