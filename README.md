@@ -2,7 +2,7 @@
 
 Home Assistant Blueprint zur intelligenten Steuerung einer motorisierten Dachluke zur Badentlüftung – vollständig konfigurierbar über die Home Assistant Web-UI, kein YAML-Editieren erforderlich.
 
-[![Import Blueprint](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https://raw.githubusercontent.com/C4mp3r-Grey/dachluke-badentlueftung/main/blueprints/automation/dachluke_steuerung.yaml)
+[![Import Blueprint](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https://github.com/C4mp3r-Grey/dachluke-badentlueftung/main/blueprints/automation/dachluke_steuerung.yaml)
 
 ---
 
@@ -100,7 +100,7 @@ Unter **Entwicklerwerkzeuge → Ereignisse** auf `state_changed` lauschen und Ta
 ### 1. Blueprint importieren
 Auf den Badge oben klicken oder diese URL manuell unter **Einstellungen → Automatisierungen & Szenen → Blueprints → Blueprint importieren** eingeben:
 ```
-https://raw.githubusercontent.com/C4mp3r-Grey/dachluke-badentlueftung/main/blueprints/automation/dachluke_steuerung.yaml
+https://github.com/C4mp3r-Grey/dachluke-badentlueftung/main/blueprints/automation/dachluke_steuerung.yaml
 ```
 
 ### 2. Kanal 3 aktivieren (siehe oben)
