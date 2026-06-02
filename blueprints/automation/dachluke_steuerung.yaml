@@ -1,76 +1,66 @@
-# Version: 0.6.9
-# Fixes gegenüber 0.6.8 (kosmetisch):
-# [DOC] Timer-Schließen: Kommentar präzisiert
-# [DOC] Alexa-Wetterkorrektur: auch altes Wetter genannt
-# Fixes gegenüber 0.6.7:
-# [FIX] Veralteter DESIGN-Kommentar zur Wetteransage entfernt
-#       (Wetteransage enthält seit 0.6.7 altes → neues Wetter)
-# [FIX] Auto-Schließen: is_open → is_open_or_unknown –
-#       konsistent mit Timer, Alarm und Wetter
-# Fixes gegenüber 0.6.6:
-# [FIX #A] Taupunkt-Trigger als Event-Trigger statt state-Trigger –
-#           verhindert Phantom-Entity-Fehler wenn Sensor nicht existiert.
-#           Default wieder "" statt fester Sensor-Name.
-# [FIX #B] Wetterkorrektur-Meldung enthält jetzt "altes Wetter → neues Wetter"
-#           und Positionsänderung "von X% auf Y%". Defensiv mit
-#           trigger.from_state is not none abgesichert.
-# Fixes gegenüber 0.6.5:
-# [FIX #A] Wetterwechsel-Schließblock: Timer-Guard unterscheidet jetzt zwischen
-#           normaler Lüftung (neu in gesperrt → sofort schließen) und
-#           bewusster Override-Öffnung (bereits gesperrt → Timer respektieren).
-#           Verwendet trigger.from_state für die Unterscheidung.
-# [FIX #B] Alarm-Benachrichtigung bei unbekannter Position:
-#           is_open_or_unknown statt is_open für Benachrichtigungen.
-# Fixes gegenüber 0.6.4:
-# [FIX] Jinja-Kommentar aus {{ }}-Block entfernt (ungültige Syntax)
-# [FIX] Aktivierung bei aktivem Alarm gibt Rückmeldung statt still zu ignorieren
-# Fixes gegenüber 0.6.3:
-# [FIX #1] Positionssensor unavailable/unknown wird nicht mehr als 0% behandelt.
-#           position_available Variable + is_open_or_unknown für Sicherheitsblöcke:
-#           Bei unbekannter Position → Sicherheitsblöcke schließen,
-#           Auto-Öffnen erfordert position_available.
-# [FIX #2] Alexa-Beschreibung konsistent mit Code (Wetterkorrektur = kritisch).
-# [FIX #5] Aktivieren bei aktivem Alarm verweigert.
-# Fixes gegenüber 0.6.2:
-# [FIX #2] Wetterwechsel-Schließblock nicht auslösen wenn Timer aktiv
-#           (manuelle Override-Öffnung bei gesperrtem Wetter läuft noch)
-# [FIX #4] Alarm-Block ohne is_open: Schließbefehl immer senden,
-#           auch wenn Positionssensor offline/unavailable ist.
-#           Benachrichtigungen nur wenn Luke laut Sensor offen war.
-# [DOC]    Beschreibung "gesperrtes Wetter" an neue Logik angepasst
-# Fixes gegenüber 0.6.1 (basierend auf Code-Review):
-# [FIX #1] Race-Condition: is_open bei Alarm/Wetter-Sicherheitsblöcken entfernt
-#           + position_changed Fallback wenn Luke nachträglich als offen erkannt wird
-# [FIX #2] Reihenfolge: Sicherheitsblöcke ganz nach oben vor normale Bedienlogik
-# [FIX #3] Timer im Auto-Übernahme-Block nur starten wenn nicht aktiv (echte max. Dauer)
-# [FIX #4] Schließblock: sensor_available OR indoor_dew_point_available
-# [FIX #6] Alarm-Block vor Wetter-Block (höhere Sicherheitspriorität)
-# [CHANGE] Gesperrtes Wetter bei manuellem Öffnen: öffnet auf bad_weather Position
-#           statt zu sperren, mit kritischer Alexa-Ansage + optionalem DWD-Sensor
-# Fixes gegenüber 0.6.0 (basierend auf Code-Review):
-# [FIX #1] Manuelles Schließen bricht Timer wieder ab
-# [FIX #2] Timer-Schließung prüft ob Luke offen ist
-# [FIX #3] Manuelles Öffnen während temporärer Pause erlaubt
-# [FIX #4] Wetterkorrektur Alexa wieder alexa_critical statt alexa_all
-# [FIX #6] Manuelles Öffnen bei gesperrtem Wetter wird zurückgeschlossen
-# [FIX #7] Alarm-Block weiter oben, saubere Remote-Unterscheidung
-# [FIX #8] Taupunkt-Trigger nur wenn dew_point_enabled
-# [DESIGN] Sentinel-Werte float(-99)/float(99) behalten – robust und lesbar
-# [FIX 0.6.7] Wetteransagen enthalten altes Wetter → neues Wetter und Positionsänderung
+# Version: 0.7.4
+# [PATCH] Auto-Übernahme cancelt Nachlüft-Timer bei neuem Steigungspeak
+# Fixes gegenüber 0.7.3:
+# [FIX #A] second_vent_wait_elapsed und second_vent_duration_elapsed prüfen
+#           ob Haupt-Timer noch aktiv – kein Schließen während laufender Lüftung
+# [FIX #B] Auto-Übernahme: Timer bei neuem Steigungspeak (humidity_rise_changed)
+#           immer neu starten – erkennt neue Person die duscht auch wenn Luke offen
+#           Licht-Trigger startet Timer nicht neu (kein neuer Duschpeak)
+# [FIX #C] Nachlüft-Timer beim Auto-Öffnen canceln – sauber für Mehrpersonenszenarien
+# Fixes gegenüber 0.7.2:
+# [FIX] Nachlüft-Timer auch bei Alarm-Fallbacks und Wetter-Fallback gecancelt
+# (MANUELL ÖFFNEN BEI ALARM, FALLBACK position_changed Alarm,
+#  FALLBACK position_changed gesperrtes Wetter)
+# Fixes gegenüber 0.7.1:
+# [FIX #1] pause_helper im zweiten Nachlüften geprüft (fresh_paused Variable)
+# [FIX #2] Nachlüft-Timer bei allen Stop-Stellen gecancelt
+# [FIX #3] Effektive Frost-/Wetter-Position in Meldungen (manual_blocked_weather_position)
+# Fixes gegenüber 0.7.0:
+# [FIX B1] rF-Fallback-Schließen: humidity_hysteresis entfernt,
+#           neuer fester humidity_close_threshold Input (Standard 65%).
+#           current_humidity < current_humidity - hysteresis war immer false.
+# [FIX B2] Zweites Nachlüften: delay entfernt, zwei neue Timer-Helfer
+#           (timer.dachluke_nachlüften + timer.dachluke_nachlüften_dauer).
+#           Sicherheitsereignisse werden nicht mehr durch lange delays blockiert.
+# [FIX B2] Frische states() nach Timer statt veralteter Blueprint-Variablen.
+# [FIX #2] target_position: Wetter gesperrt hat Vorrang vor Frostmodus.
+# [FIX #3] Manuelles Öffnen bei Wetter gesperrt + Frost: min(bad_weather, frost).
+# [NEW]    second_vent_heating_reduction: Heizung beim zweiten Lüften
+#           konfigurierbar (Standard false = Heizung unangetastet lassen).
+# Neue Features gegenüber 0.6.9:
+# [NEW] Steigungsbasierter Öffnungs-Trigger via Statistics-Sensor
+#       (state_characteristic: change, max_age: minutes: X)
+# [NEW] Heizungssteuerung via climate-Entität:
+#       Beim Öffnen auf Lüft-Temperatur, nach Schließen sofort auf Zieltemperatur
+# [NEW] Frostmodus: Außentemperatur aus weather-Attribut,
+#       konfigurierbare Frost-Position, Frost-Timer, Frost-Grenze
+# [NEW] Zweites Nachlüften optional: nach Wartezeit wenn rF noch zu hoch
+# [FIX] Doppelte Schließmeldung: Trigger-Mutex für humidity vs. dew_point
+#
+# VORAUSSETZUNG: Statistics-Sensor in configuration.yaml anlegen:
+#   sensor:
+#     - platform: statistics
+#       name: "Bad Feuchte Steigung"
+#       entity_id: sensor.DEIN_HYGROMETER
+#       state_characteristic: change
+#       max_age:
+#         minutes: 5
+#       sampling_size: 50
+#       precision: 1
+#   Ergibt: sensor.bad_feuchte_steigung (Wert in % über 5 Minuten)
+
 blueprint:
   name: "Dachluke Badentlüftung"
   description: >
     Steuert eine motorisierte Dachluke zur Badentlüftung nach dem Duschen.
-    Öffnet bei hoher Luftfeuchtigkeit, schließt wenn die Luft trocken ist
-    oder die maximale Öffnungsdauer abgelaufen ist.
-    Schließschwellwert optional taupunkt-basiert (physikalisch korrekt):
-    schließt wenn Innen-Taupunkt unter Außen-Taupunkt + Offset fällt.
-    Drei Wetterkategorien: normal (volle Öffnung), eingeschränkt (Minimalöffnung),
-    gesperrt (Auto-Öffnen verboten, Wetterwechsel schließt sofort;
-    manuelles Öffnen erlaubt auf Minimalöffnung mit Alexa-Warnung).
-    Wetterkorrektur passt Position nur bei echter Abweichung an, ohne Timer-Reset.
-    Manuelle Bedienung über HmIP-BROLL wird nur als Event ausgewertet.
-    Alarmo-Integration, optionaler Fensterkontakt, drei Benachrichtigungskanäle.
+    Öffnet wenn die Feuchte-Steigung einen Schwellwert überschreitet.
+    Schließt taupunkt-basiert (physikalisch korrekt) oder rF-Hysterese als Fallback.
+    Frostmodus: bei Außentemperatur unter Grenze kleinere Öffnung und kürzerer Timer.
+    Heizungssteuerung: Lüft-Temperatur beim Öffnen, Zieltemperatur nach Schließen.
+    Zweites kurzes Nachlüften optional konfigurierbar.
+    Drei Wetterkategorien: normal / eingeschränkt / gesperrt.
+    Sicherheit: Alarm, Positionssensor-Ausfall, Race-Condition-Fallbacks.
+    Manuelle Bedienung über HmIP-BROLL Events erkannt.
   domain: automation
   author: C4mp3r-Grey
   homeassistant:
@@ -86,9 +76,8 @@ blueprint:
         cover_entity:
           name: Dachluke (Cover-Entität)
           description: >
-            Steuerungsentität der Dachluke – nur für automatische Befehle
-            verwendet. Manuelle Kurzdrücke am HmIP-BROLL werden als bereits
-            ausgeführte Bedienung interpretiert.
+            Steuerungsentität der Dachluke – nur für automatische Befehle.
+            Manuelle Bedienung am HmIP-BROLL wird als Event erkannt.
           selector:
             entity:
               domain: cover
@@ -96,8 +85,8 @@ blueprint:
           name: Positionssensor (Kanal 3)
           description: >
             Zuverlässige Positionsrückmeldung 0–100%.
-            Muss in der Homematic(IP) Local Integration manuell
-            aktiviert werden (Unignore Parameters → Kanal 3 → LEVEL).
+            Muss in Homematic(IP) Local aktiviert werden:
+            Unignore Parameters → Kanal 3 → LEVEL.
             z. B. "sensor.dachluke_ch3".
           selector:
             entity:
@@ -125,9 +114,7 @@ blueprint:
         position_tolerance:
           name: Positions-Toleranz für Korrekturen (%)
           description: >
-            Wetter-Korrekturen werden nur gesendet wenn die aktuelle Position
-            um mindestens diesen Wert von der Zielposition abweicht.
-            Verhindert unnötige Motorbefehle.
+            Wetter-Korrekturen nur wenn Abweichung ≥ diesem Wert.
           default: 3
           selector:
             number:
@@ -146,7 +133,7 @@ blueprint:
           description: >
             Event-Entität des Öffnen-Kanals am HmIP-BROLL,
             z. B. "event.dachluke_ch1".
-            Kurz: manuelle Öffnung wurde erkannt.
+            Kurz: manuelle Öffnung erkannt.
             Lang: Automation aktivieren.
           selector:
             entity:
@@ -156,7 +143,7 @@ blueprint:
           description: >
             Event-Entität des Schließen-Kanals am HmIP-BROLL,
             z. B. "event.dachluke_ch2".
-            Kurz: manuelle Schließung wurde erkannt und startet Pause.
+            Kurz: manuelle Schließung erkannt und startet Pause.
             Lang: Automation dauerhaft deaktivieren.
           selector:
             entity:
@@ -179,8 +166,7 @@ blueprint:
           name: Schließen-Taste der Fernbedienung
           description: >
             z. B. "event.hmip_wrc6_bad_ch3".
-            Kurz: manuelle Schließung erkannt und startet Pause.
-            Lang: Automation deaktivieren.
+            Kurz: manuelle Schließung erkannt. Lang: Automation deaktivieren.
           default: ""
           selector:
             entity:
@@ -194,7 +180,6 @@ blueprint:
           name: Temporäre Pause (input_boolean)
           description: >
             Anlegen unter Einstellungen → Helfer → Toggle.
-            Wird nur für die automatische Pause nach manuellem Schließen genutzt.
             z. B. "input_boolean.dachluke_pause".
           selector:
             entity:
@@ -202,8 +187,7 @@ blueprint:
         disabled_helper:
           name: Dauerhaft deaktiviert (input_boolean)
           description: >
-            Separater Toggle-Helfer für dauerhafte Deaktivierung.
-            Wird bei langem Schließen aktiviert, bei langem Öffnen deaktiviert.
+            Separater Toggle für dauerhafte Deaktivierung.
             z. B. "input_boolean.dachluke_deaktiviert".
           selector:
             entity:
@@ -213,7 +197,28 @@ blueprint:
           description: >
             Anlegen unter Einstellungen → Helfer → Timer.
             z. B. "timer.dachluke_lueftung".
-            Zählt die maximale Öffnungsdauer runter und schließt bei 0.
+          selector:
+            entity:
+              domain: timer
+        second_vent_wait_timer:
+          name: Nachlüften Wartezeit-Timer
+          description: >
+            Zweiter Timer für die Wartezeit vor dem zweiten Nachlüften.
+            Nur relevant wenn zweites Nachlüften aktiviert ist.
+            Anlegen unter Einstellungen → Helfer → Timer.
+            z. B. "timer.dachluke_nachlüften".
+          default: ""
+          selector:
+            entity:
+              domain: timer
+        second_vent_duration_timer:
+          name: Nachlüften Dauer-Timer
+          description: >
+            Dritter Timer für die Dauer des zweiten Nachlüftens.
+            Nur relevant wenn zweites Nachlüften aktiviert ist.
+            Anlegen unter Einstellungen → Helfer → Timer.
+            z. B. "timer.dachluke_nachlüften_dauer".
+          default: ""
           selector:
             entity:
               domain: timer
@@ -227,7 +232,7 @@ blueprint:
               domain: input_text
 
     humidity_section:
-      name: "💧 Luftfeuchtigkeit & Schließschwellwert"
+      name: "💧 Luftfeuchtigkeit & Steigung"
       icon: mdi:water-percent
       input:
         humidity_sensor:
@@ -236,28 +241,44 @@ blueprint:
             entity:
               domain: sensor
               device_class: humidity
-        humidity_threshold:
-          name: Schwellwert zum Öffnen (%)
-          description: Ab dieser relativer Luftfeuchtigkeit öffnet die Luke.
-          default: 75
+        humidity_rise_sensor:
+          name: Feuchte-Steigungssensor (Statistics)
+          description: >
+            Statistics-Sensor mit state_characteristic: change über max_age: minutes: 5.
+            Muss manuell in configuration.yaml angelegt werden (siehe Beschreibung oben).
+            z. B. "sensor.bad_feuchte_steigung".
+            State-Wert = Feuchteänderung in % über 5 Minuten.
+          selector:
+            entity:
+              domain: sensor
+        humidity_rise_threshold:
+          name: Steigungsschwellwert zum Öffnen (%/5min)
+          description: >
+            Öffnen wenn Feuchte um diesen Wert in 5 Minuten gestiegen ist.
+            Standard 8% bedeutet: Feuchte stieg von z.B. 55% auf 63% → öffnen.
+          default: 8
           selector:
             number:
-              min: 40
-              max: 100
+              min: 3
+              max: 25
               step: 1
               unit_of_measurement: "%"
               mode: slider
-        humidity_hysteresis:
-          name: Hysterese zum Schließen (%) – Fallback
+        humidity_close_threshold:
+          name: Schwellwert zum Schließen (%)
           description: >
-            Wird verwendet wenn Taupunkt-basiertes Schließen deaktiviert oder
-            nicht verfügbar ist. Luke schließt bei Schwellwert − Hysterese.
-            Bei 75% und 10% Hysterese = Schließen bei 65%.
-          default: 10
+            Luke schließt wenn die Luftfeuchtigkeit unter diesen Wert fällt.
+            Absoluter Schwellwert – unabhängig davon wie hoch die Feuchte
+            beim Öffnen war.
+            Sollte deutlich unter dem Steigungsschwellwert liegen.
+            Standard 65% passt zu typischen Badezimmerwerten nach dem Lüften.
+            Wird als Fallback verwendet wenn Taupunkt-Schließen deaktiviert
+            oder nicht verfügbar ist.
+          default: 65
           selector:
             number:
-              min: 1
-              max: 25
+              min: 30
+              max: 85
               step: 1
               unit_of_measurement: "%"
               mode: slider
@@ -265,8 +286,7 @@ blueprint:
           name: Taupunkt-basiertes Schließen aktivieren
           description: >
             Physikalisch korrektere Schließbedingung:
-            Schließt wenn der Innen-Taupunkt unter den Außen-Taupunkt
-            + Offset fällt. Lüften bringt dann keinen Entfeuchtungseffekt mehr.
+            Schließt wenn Innen-Taupunkt unter Außen-Taupunkt + Offset fällt.
             Erfordert Thermal Comfort Integration (HACS) und weather-Entität
             mit dew_point-Attribut (z. B. Met.no).
           default: false
@@ -275,10 +295,9 @@ blueprint:
         indoor_dew_point_sensor:
           name: Innen-Taupunkt (Thermal Comfort)
           description: >
-            Taupunkt-Sensor für das Badezimmer, berechnet aus Innentemperatur
-            und Innenfeuchte via Thermal Comfort Integration.
+            Taupunkt-Sensor aus Thermal Comfort Integration.
+            Nur relevant wenn Taupunkt-Schließen aktiviert.
             z. B. "sensor.thermal_comfort_taupunkt".
-            Nur relevant wenn Taupunkt-basiertes Schließen aktiviert ist.
           default: ""
           selector:
             entity:
@@ -288,8 +307,7 @@ blueprint:
           name: Taupunkt-Offset zum Schließen (°C)
           description: >
             Schließen wenn Innen-Taupunkt < Außen-Taupunkt + Offset.
-            Bei 2°C: Schließen wenn Lüften nur noch 2°C Taupunkt-Differenz bringt.
-            Bei 0°C: Schließen sobald Innenluft absolut nicht mehr feuchter als Außenluft.
+            Bei 2°C: Lüften bringt nur noch 2°C Taupunkt-Differenz.
           default: 2
           selector:
             number:
@@ -306,13 +324,169 @@ blueprint:
         light_entities:
           name: Lampe(n) im Badezimmer
           description: >
-            Öffnungssperre – automatische Öffnung nur wenn mindestens eine
-            Lampe an ist. Zusätzlich Trigger damit hohe Feuchte nicht
-            verpasst wird wenn das Licht später angeht.
+            Öffnungssperre – automatische Öffnung nur wenn mindestens
+            eine Lampe an ist.
           selector:
             entity:
               multiple: true
               domain: light
+
+    heating_section:
+      name: "🌡️ Heizung (optional)"
+      icon: mdi:radiator
+      collapsed: true
+      input:
+        heating_enabled:
+          name: Heizungssteuerung aktivieren
+          description: >
+            Beim Öffnen wird die Heizung auf Lüft-Temperatur reduziert.
+            Nach dem Schließen sofort wieder auf Zieltemperatur.
+          default: false
+          selector:
+            boolean:
+        heating_entity:
+          name: Thermostat (climate-Entität)
+          description: >
+            z. B. "climate.bad_heizung".
+          default: ""
+          selector:
+            entity:
+              domain: climate
+        heating_temp_normal:
+          name: Zieltemperatur nach dem Schließen (°C)
+          description: Heizung kehrt nach Lüftung auf diesen Wert zurück.
+          default: 22
+          selector:
+            number:
+              min: 15
+              max: 30
+              step: 0.5
+              unit_of_measurement: "°C"
+              mode: slider
+        heating_temp_vent:
+          name: Lüft-Temperatur beim Öffnen (°C)
+          description: >
+            Heizung wird beim Öffnen auf diesen Wert reduziert.
+            Spart Energie da nicht zum Fenster hinausgeheizt wird.
+          default: 15
+          selector:
+            number:
+              min: 5
+              max: 20
+              step: 0.5
+              unit_of_measurement: "°C"
+              mode: slider
+
+    frost_section:
+      name: "🧊 Frostmodus (optional)"
+      icon: mdi:snowflake
+      collapsed: true
+      input:
+        frost_enabled:
+          name: Frostmodus aktivieren
+          description: >
+            Bei Außentemperatur unter Frost-Grenze wird die Luke nur
+            minimal geöffnet und der Timer verkürzt.
+            Außentemperatur aus weather-Attribut (temperature).
+          default: false
+          selector:
+            boolean:
+        frost_temp_threshold:
+          name: Frost-Grenze (°C)
+          description: >
+            Unterhalb dieser Außentemperatur gilt Frostmodus.
+          default: -5
+          selector:
+            number:
+              min: -15
+              max: 5
+              step: 1
+              unit_of_measurement: "°C"
+              mode: slider
+        frost_position:
+          name: Öffnungsposition bei Frost (%)
+          description: >
+            Minimale Öffnung im Frostmodus – nur so viel wie nötig.
+          default: 10
+          selector:
+            number:
+              min: 5
+              max: 30
+              step: 5
+              unit_of_measurement: "%"
+              mode: slider
+        frost_duration:
+          name: Maximale Öffnungsdauer bei Frost (Minuten)
+          description: >
+            Kürzerer Timer im Frostmodus um Auskühlen zu minimieren.
+          default: 8
+          selector:
+            number:
+              min: 2
+              max: 20
+              step: 1
+              unit_of_measurement: "min"
+              mode: slider
+
+    second_vent_section:
+      name: "🔄 Zweites Nachlüften (optional)"
+      icon: mdi:refresh
+      collapsed: true
+      input:
+        second_vent_enabled:
+          name: Zweites Nachlüften aktivieren
+          description: >
+            Nach dem ersten Schließen wartet die Automation eine konfigurierbare
+            Zeit. Ist die Feuchte dann immer noch erhöht, öffnet die Luke
+            kurz erneut und schließt dann endgültig.
+          default: false
+          selector:
+            boolean:
+        second_vent_wait:
+          name: Wartezeit nach erstem Schließen (Minuten)
+          description: >
+            So lange wird gewartet bevor die Feuchte erneut geprüft wird.
+          default: 25
+          selector:
+            number:
+              min: 5
+              max: 60
+              step: 5
+              unit_of_measurement: "min"
+              mode: slider
+        second_vent_threshold:
+          name: Feuchte-Schwelle für zweites Lüften (%)
+          description: >
+            Zweites Lüften nur wenn rF nach Wartezeit noch über diesem Wert.
+          default: 60
+          selector:
+            number:
+              min: 40
+              max: 80
+              step: 5
+              unit_of_measurement: "%"
+              mode: slider
+        second_vent_duration:
+          name: Dauer zweites Lüften (Minuten)
+          description: Kurze finale Lüftung zur Restentfeuchtung.
+          default: 2
+          selector:
+            number:
+              min: 1
+              max: 10
+              step: 1
+              unit_of_measurement: "min"
+              mode: slider
+        second_vent_heating_reduction:
+          name: Heizung beim zweiten Nachlüften absenken
+          description: >
+            Wenn aktiviert: Heizung beim zweiten Nachlüften ebenfalls
+            auf Lüft-Temperatur absenken und danach wieder auf Zieltemperatur.
+            Standard: deaktiviert – Heizung bleibt beim zweiten Lüften
+            auf Zieltemperatur (schont batteriebetriebene Thermostate).
+          default: false
+          selector:
+            boolean:
 
     weather_section:
       name: "🌧️ Wetterschutz"
@@ -321,18 +495,13 @@ blueprint:
         weather_entity:
           name: Wetterstation
           description: >
-            Bei Wetterwechsel wird die Position nur angepasst wenn die
-            Abweichung größer als die Toleranz ist. Timer wird nicht zurückgesetzt.
-            Muss dew_point-Attribut liefern für Taupunkt-basiertes Schließen
+            Wetter-Entität mit dew_point und temperature Attributen
             (z. B. Met.no / weather.forecast_home).
           selector:
             entity:
               domain: weather
         bad_weather_conditions:
           name: Eingeschränkte Wetterzustände (Minimalöffnung)
-          description: >
-            Bei diesen Zuständen öffnet die Luke nur auf die
-            konfigurierte Minimalposition statt auf die normale Position.
           default:
             - rainy
             - pouring
@@ -363,12 +532,8 @@ blueprint:
         blocked_weather_conditions:
           name: Gesperrte Wetterzustände
           description: >
-            Bei diesen Zuständen öffnet die Luke automatisch nicht und
-            wird bei Wetterwechsel sofort geschlossen.
-            Manuelles Öffnen ist weiterhin möglich – die Luke fährt dann
-            auf die Minimalposition mit Alexa-Warnung und Timer.
-            Höhere Priorität als eingeschränkte Zustände.
-            z. B. Sturm, Hagel.
+            Auto-Öffnen verboten, Wetterwechsel schließt sofort.
+            Manuelles Öffnen auf Minimalposition mit Warnung möglich.
           default:
             - hail
             - windy-variant
@@ -399,9 +564,7 @@ blueprint:
       input:
         max_open_duration:
           name: Maximale Öffnungsdauer (Minuten)
-          description: >
-            Nach dieser Zeit schließt die Luke automatisch.
-            Der Timer zählt runter und schließt exakt bei 0.
+          description: Zwangsschließung nach dieser Zeit. Timer zählt exakt runter.
           default: 45
           selector:
             number:
@@ -434,9 +597,7 @@ blueprint:
             boolean:
         contact_sensor:
           name: Fensterkontakt (binary_sensor)
-          description: >
-            "on" = offen, "off" = geschlossen.
-            z. B. "binary_sensor.kontakt_bad_dachluke".
+          description: '"on" = offen, "off" = geschlossen.'
           default: ""
           selector:
             entity:
@@ -455,7 +616,6 @@ blueprint:
             boolean:
         alarm_entity:
           name: Alarmo Entität
-          description: z. B. "alarm_control_panel.alarmo"
           default: ""
           selector:
             entity:
@@ -518,7 +678,6 @@ blueprint:
         notify_alexa_mode:
           name: Alexa-Ansageumfang
           description: >
-            Alle Änderungen: jede relevante Statusänderung wird angesagt.
             Nur kritische: Alarm, Zeitablauf, wetterbedingte Positionsänderungen,
             gesperrtes Wetter und Sensorfehler.
           default: critical
@@ -531,14 +690,12 @@ blueprint:
                   value: all
         notify_alexa_entity:
           name: Alexa Speak-Entität
-          description: z. B. "notify.echo_bad_sprechen"
           default: ""
           selector:
             entity:
               domain: notify
         notify_alexa_volume:
           name: Alexa Lautstärke
-          description: SSML-Lautstärke der Sprachausgabe.
           default: soft
           selector:
             select:
@@ -561,17 +718,13 @@ blueprint:
       input:
         dwd_sensor_enabled:
           name: DWD Warnstufen-Sensor aktivieren
-          description: >
-            Wenn aktiv, wird die aktuelle DWD-Warnstufe in der Alexa-Ansage
-            beim manuellen Öffnen trotz gesperrtem Wetter genannt.
           default: false
           selector:
             boolean:
         dwd_sensor:
           name: DWD Warnstufen-Sensor
           description: >
-            Sensor mit aktueller DWD-Warnstufe, z. B.
-            "sensor.hamburg_altona_aktuelle_warnstufe".
+            z. B. "sensor.hamburg_altona_aktuelle_warnstufe".
             State 0 = keine Warnung, 1–4 = Warnstufe.
           default: ""
           selector:
@@ -581,8 +734,9 @@ blueprint:
 variables:
   # ── Inputs ───────────────────────────────────────────────────────────────
   humidity_sensor: !input humidity_sensor
-  humidity_threshold: !input humidity_threshold
-  humidity_hysteresis: !input humidity_hysteresis
+  humidity_rise_sensor: !input humidity_rise_sensor
+  humidity_rise_threshold: !input humidity_rise_threshold
+  humidity_close_threshold: !input humidity_close_threshold
   dew_point_enabled: !input dew_point_enabled
   indoor_dew_point_sensor: !input indoor_dew_point_sensor
   dew_point_offset: !input dew_point_offset
@@ -600,6 +754,8 @@ variables:
   pause_helper: !input pause_helper
   disabled_helper: !input disabled_helper
   timer_helper: !input timer_helper
+  second_vent_wait_timer: !input second_vent_wait_timer
+  second_vent_duration_timer: !input second_vent_duration_timer
   status_helper: !input status_helper
   remote_enabled: !input remote_enabled
   button_open_remote: !input button_open_remote
@@ -618,9 +774,21 @@ variables:
   notify_alexa_volume: !input notify_alexa_volume
   dwd_sensor_enabled: !input dwd_sensor_enabled
   dwd_sensor: !input dwd_sensor
+  heating_enabled: !input heating_enabled
+  heating_entity: !input heating_entity
+  heating_temp_normal: !input heating_temp_normal
+  heating_temp_vent: !input heating_temp_vent
+  frost_enabled: !input frost_enabled
+  frost_temp_threshold: !input frost_temp_threshold
+  frost_position: !input frost_position
+  frost_duration: !input frost_duration
+  second_vent_enabled: !input second_vent_enabled
+  second_vent_wait: !input second_vent_wait
+  second_vent_threshold: !input second_vent_threshold
+  second_vent_duration: !input second_vent_duration
+  second_vent_heating_reduction: !input second_vent_heating_reduction
 
   # ── DWD Warnung ───────────────────────────────────────────────────────────
-  # Warnstufe als Text für Alexa-Ansage; 0 = keine Warnung
   dwd_warning_active: >
     {{ dwd_sensor_enabled
        and dwd_sensor not in ['', none]
@@ -636,7 +804,13 @@ variables:
   # ── Messwerte ─────────────────────────────────────────────────────────────
   current_humidity: >
     {{ states(humidity_sensor) | float(0) }}
-  # [FIX #1] Positionssensor-Verfügbarkeit explizit prüfen
+  humidity_rise_available: >
+    {{ states(humidity_rise_sensor) not in ['unavailable', 'unknown', 'none', '']
+       and is_number(states(humidity_rise_sensor)) }}
+  current_humidity_rise: >
+    {{ states(humidity_rise_sensor) | float(0) if humidity_rise_available else 0 }}
+
+  # Positionssensor-Verfügbarkeit explizit prüfen
   # float(0) bei unavailable würde Luke fälschlich als "geschlossen" werten
   position_available: >
     {{ states(position_sensor) not in ['unavailable', 'unknown', 'none', '']
@@ -644,48 +818,68 @@ variables:
   current_position: >
     {{ states(position_sensor) | float(0) if position_available else 0 }}
 
-  # ── Wetter ───────────────────────────────────────────────────────────────
-  # Außen-Taupunkt aus weather-Attribut (Met.no liefert dew_point direkt)
-  # [DESIGN] Sentinel -99: Review empfahl is_number()+is not none.
-  # Behalten: float(-99) mit > -99 Prüfung in indoor_dew_point_available
-  # ist in der Praxis ebenso robust und deutlich lesbarer.
+  # ── Außenwetter ───────────────────────────────────────────────────────────
+  # [DESIGN] Sentinel -99: float(-99) mit > -99 Prüfung ist robust und lesbar.
   # Taupunkt liegt physikalisch nie unter -99°C.
   outdoor_dew_point: >
     {{ state_attr(weather_entity, 'dew_point') | float(-99) }}
+  outdoor_temp: >
+    {{ state_attr(weather_entity, 'temperature') | float(20) }}
+
+  # ── Frostmodus ────────────────────────────────────────────────────────────
+  frost_active: >
+    {{ frost_enabled and outdoor_temp < (frost_temp_threshold | float) }}
+
+  # ── Wetter ───────────────────────────────────────────────────────────────
   weather_blocked: >
     {{ states(weather_entity) in blocked_weather_conditions }}
   weather_restricted: >
     {{ states(weather_entity) in bad_weather_conditions }}
-  # Zielposition: gesperrt → 0 (Auto), eingeschränkt → bad_weather, normal → good_weather
-  # Bei manuellem Öffnen bei gesperrtem Wetter wird position_bad_weather direkt verwendet
+
+  # Zielposition: Wetter gesperrt hat Vorrang vor Frost (Sicherheit vor Komfort)
   target_position: >
     {% if weather_blocked %}
       0
+    {% elif frost_active %}
+      {{ frost_position | int }}
     {% elif weather_restricted %}
       {{ position_bad_weather | int }}
     {% else %}
       {{ position_good_weather | int }}
     {% endif %}
 
+  # Effektive maximale Öffnungsdauer: Frost verkürzt den Timer
+  effective_max_duration: >
+    {% if frost_active %}
+      {{ frost_duration | int }}
+    {% else %}
+      {{ max_open_duration | int }}
+    {% endif %}
+
   # ── Schließschwellwert ────────────────────────────────────────────────────
+  # [FIX B1] Absoluter Schließschwellwert statt dynamischer Hysterese.
+  # humidity_hysteresis entfernt – current_humidity - hysteresis war immer false.
   close_threshold: >
-    {{ (humidity_threshold | float) - (humidity_hysteresis | float) }}
+    {{ humidity_close_threshold | float }}
+
   # Innen-Taupunkt verfügbar?
   indoor_dew_point_available: >
     {{ dew_point_enabled
+       and indoor_dew_point_sensor not in ['', none]
        and states(indoor_dew_point_sensor) not in ['unavailable', 'unknown', '']
        and is_number(states(indoor_dew_point_sensor))
        and outdoor_dew_point > -99 }}
   indoor_dew_point: >
-    {{ states(indoor_dew_point_sensor) | float(99) }}
-  # Schließen wegen Taupunkt?
+    {{ states(indoor_dew_point_sensor) | float(99) if indoor_dew_point_available else 99 }}
+
+  # Schließbedingungen
   should_close_dew_point: >
     {{ indoor_dew_point_available
        and indoor_dew_point < (outdoor_dew_point + (dew_point_offset | float)) }}
-  # Schließen wegen relativer Feuchte (Fallback)?
   should_close_humidity: >
     {{ current_humidity < close_threshold }}
-  # Finale Schließbedingung – Taupunkt hat Vorrang wenn verfügbar
+  # Trigger-Mutex: Taupunkt hat Vorrang wenn verfügbar,
+  # verhindert doppelte Schließmeldung durch simultane Trigger
   should_close: >
     {% if indoor_dew_point_available %}
       {{ should_close_dew_point }}
@@ -697,11 +891,8 @@ variables:
   sensor_available: >
     {{ states(humidity_sensor) not in ['unavailable', 'unknown', 'none', '']
        and is_number(states(humidity_sensor)) }}
-  # is_open: nur true wenn Sensor verfügbar UND Position > 0
   is_open: >
     {{ position_available and states(position_sensor) | float(0) > 0 }}
-  # is_open_or_unknown: true wenn offen ODER Sensor nicht verfügbar
-  # Für Sicherheitsblöcke (Alarm, Wetter): im Zweifel schließen
   is_open_or_unknown: >
     {{ not position_available or states(position_sensor) | float(0) > 0 }}
   light_on: >
@@ -728,7 +919,16 @@ variables:
       false
     {% endif %}
 
-  # ── Remote-Auswertung ─────────────────────────────────────────────────────
+  # [FIX #3] Effektive Position bei manuellem Öffnen trotz gesperrtem Wetter
+  # Frost hat Vorrang wenn frost_position kleiner als position_bad_weather
+  manual_blocked_weather_position: >
+    {% if frost_active %}
+      {{ [position_bad_weather | int, frost_position | int] | min }}
+    {% else %}
+      {{ position_bad_weather | int }}
+    {% endif %}
+
+  # ── Alexa / Remote ────────────────────────────────────────────────────────
   alexa_ready: >
     {{ notify_alexa_enabled
        and notify_alexa_entity not in ['', none, 'unavailable', 'unknown'] }}
@@ -762,36 +962,53 @@ variables:
        and (trigger.event.data.new_state.attributes.event_type | default('', true)) == 'press_long_release' }}
 
 triggers:
-  # Feuchtigkeit ändert sich → Öffnen/Schließen wird in Bedingungen geprüft
+  # Feuchte-Steigung ändert sich → Öffnen-Bedingung prüfen
+  - trigger: state
+    entity_id: !input humidity_rise_sensor
+    id: humidity_rise_changed
+
+  # Feuchte ändert sich → Schließen-Bedingung prüfen
+  # Nicht mehr für Öffnen verwendet (steigungsbasiert)
   - trigger: state
     entity_id: !input humidity_sensor
     id: humidity_changed
 
   # Innen-Taupunkt ändert sich → Schließbedingung prüfen
-  # [FIX #A] Event-Trigger statt state-Trigger: verhindert Phantom-Entity-Fehler
-  # wenn indoor_dew_point_sensor leer ist oder nicht existiert.
-  # Im Auto-Schließen-Block wird dew_point_changed nur akzeptiert
-  # wenn dew_point_enabled=true.
+  # Event-Trigger: kein Fehler wenn Sensor leer/nicht existiert
   - trigger: event
     event_type: state_changed
     event_data:
       entity_id: !input indoor_dew_point_sensor
     id: dew_point_changed
 
-  # Licht geht an → bereits hohe Feuchte wird nicht verpasst
+  # Licht geht an → hohe Feuchte nicht verpassen
   - trigger: state
     entity_id: !input light_entities
     to: "on"
     id: light_changed
 
-  # Lüftungs-Timer abgelaufen → Schließen
+  # Lüftungs-Timer abgelaufen → Zwangsschließung
   - trigger: event
     event_type: timer.finished
     event_data:
       entity_id: !input timer_helper
     id: timer_elapsed
 
-  # Temporäre Pause abgelaufen → Pause-Helfer zurücksetzen
+  # Wartezeit-Timer zweites Nachlüften abgelaufen → Feuchte prüfen
+  - trigger: event
+    event_type: timer.finished
+    event_data:
+      entity_id: !input second_vent_wait_timer
+    id: second_vent_wait_elapsed
+
+  # Dauer-Timer zweites Nachlüften abgelaufen → endgültig schließen
+  - trigger: event
+    event_type: timer.finished
+    event_data:
+      entity_id: !input second_vent_duration_timer
+    id: second_vent_duration_elapsed
+
+  # Temporäre Pause abgelaufen → Pause aufheben
   - trigger: state
     entity_id: !input pause_helper
     to: "on"
@@ -799,17 +1016,17 @@ triggers:
       minutes: !input pause_duration
     id: pause_elapsed
 
-  # Wetter ändert sich → Position ggf. korrigieren oder sperren
+  # Wetter ändert sich → Position korrigieren oder sperren
   - trigger: state
     entity_id: !input weather_entity
     id: weather_changed
 
-  # Position ändert sich → Plausibilitätsprüfung
+  # Position ändert sich → Plausibilitätsprüfung + Sicherheits-Fallback
   - trigger: state
     entity_id: !input position_sensor
     id: position_changed
 
-  # Optionaler Kontaktsensor per Event
+  # Optionaler Kontaktsensor
   - trigger: event
     event_type: state_changed
     event_data:
@@ -867,20 +1084,51 @@ triggers:
 conditions: []
 
 actions:
-  # Feuchtebasierte Trigger bei nicht verfügbarem Sensor blockieren
+  # Steigungsbasierte Trigger bei nicht verfügbarem Sensor blockieren
   - if:
       - condition: template
         value_template: >
           {{ not sensor_available
-             and trigger.id in ['humidity_changed', 'light_changed'] }}
+             and trigger.id in ['humidity_rise_changed', 'humidity_changed', 'light_changed'] }}
     then:
-      - stop: "Hygrometer nicht verfügbar – feuchtebasierte Automatik übersprungen"
+      - stop: "Hygrometer nicht verfügbar"
 
   - choose:
 
       # ════════════════════════════════════════════════════════════════════════
       # PRIORITÄT 1: DAUERHAFT DE-/AKTIVIEREN
       # ════════════════════════════════════════════════════════════════════════
+
+      # ── AKTIVIEREN BEI ALARM: Rückmeldung, keine Aktion ──────────────────
+      - conditions:
+          - condition: template
+            value_template: >
+              {{ (trigger.id == 'automation_enable' or remote_open_long)
+                 and alarm_blocked }}
+        sequence:
+          - if:
+              - condition: template
+                value_template: "{{ notify_persistent_enabled }}"
+            then:
+              - action: input_text.set_value
+                target:
+                  entity_id: !input status_helper
+                data:
+                  value: >
+                    {{ now().strftime('%d.%m. %H:%M') }} –
+                    ⚠️ Aktivierung verweigert – Alarm aktiv
+          - if:
+              - condition: template
+                value_template: "{{ alexa_critical }}"
+            then:
+              - action: notify.send_message
+                data:
+                  message: >
+                    <prosody volume='{{ notify_alexa_volume }}'>
+                    Automatik kann nicht aktiviert werden. Alarm ist aktiv.
+                    </prosody>
+                target:
+                  entity_id: "{{ notify_alexa_entity }}"
 
       # ── DAUERHAFT DEAKTIVIEREN: langer Schließ-Druck ─────────────────────
       - conditions:
@@ -897,6 +1145,30 @@ actions:
           - action: timer.cancel
             target:
               entity_id: !input timer_helper
+          # [FIX #2] Nachlüft-Timer ebenfalls abbrechen
+          - if:
+              - condition: template
+                value_template: "{{ second_vent_wait_timer not in ['', none] }}"
+            then:
+              - action: timer.cancel
+                target:
+                  entity_id: !input second_vent_wait_timer
+          - if:
+              - condition: template
+                value_template: "{{ second_vent_duration_timer not in ['', none] }}"
+            then:
+              - action: timer.cancel
+                target:
+                  entity_id: !input second_vent_duration_timer
+          - if:
+              - condition: template
+                value_template: "{{ heating_enabled and heating_entity not in ['', none] }}"
+            then:
+              - action: climate.set_temperature
+                target:
+                  entity_id: !input heating_entity
+                data:
+                  temperature: "{{ heating_temp_normal | float }}"
           - if:
               - condition: template
                 value_template: "{{ notify_app_enabled }}"
@@ -934,41 +1206,7 @@ actions:
                 target:
                   entity_id: "{{ notify_alexa_entity }}"
 
-      # ── AKTIVIEREN BEI ALARM: Rückmeldung, keine Aktion ────────────────────
-      # [FIX] Rückmeldung wenn Aktivierung bei aktivem Alarm versucht wird
-      - conditions:
-          - condition: template
-            value_template: >
-              {{ (trigger.id == 'automation_enable' or remote_open_long)
-                 and alarm_blocked }}
-        sequence:
-          - if:
-              - condition: template
-                value_template: "{{ notify_persistent_enabled }}"
-            then:
-              - action: input_text.set_value
-                target:
-                  entity_id: !input status_helper
-                data:
-                  value: >
-                    {{ now().strftime('%d.%m. %H:%M') }} –
-                    ⚠️ Aktivierung verweigert – Alarm aktiv
-          - if:
-              - condition: template
-                value_template: "{{ alexa_critical }}"
-            then:
-              - action: notify.send_message
-                data:
-                  message: >
-                    <prosody volume='{{ notify_alexa_volume }}'>
-                    Automatik kann nicht aktiviert werden. Alarm ist aktiv.
-                    </prosody>
-                target:
-                  entity_id: "{{ notify_alexa_entity }}"
-
       # ── AKTIVIEREN: langer Öffnen-Druck ──────────────────────────────────
-      # [FIX #5] Aktivierung bei aktivem Alarm verweigern –
-      # sonst würde disabled_helper OFF gehen während Alarm noch blockiert.
       - conditions:
           - condition: template
             value_template: >
@@ -988,7 +1226,7 @@ actions:
               - action: "{{ notify_app_service }}"
                 data:
                   title: "🟢 Dachluke-Automatik aktiv"
-                  message: "Dauerhafte Deaktivierung und Pause aufgehoben."
+                  message: "Deaktivierung und Pause aufgehoben."
           - if:
               - condition: template
                 value_template: "{{ notify_persistent_enabled }}"
@@ -1019,14 +1257,11 @@ actions:
                   entity_id: "{{ notify_alexa_entity }}"
 
       # ════════════════════════════════════════════════════════════════════════
-      # PRIORITÄT 2: SICHERHEIT – ALARM (höchste Priorität vor Wetter)
+      # PRIORITÄT 2: SICHERHEIT – ALARM
       # ════════════════════════════════════════════════════════════════════════
 
-      # ── ALARMO: Alarm-Zustandswechsel → sofort schließen + deaktivieren ──
-      # [FIX #6] Alarm vor Wetter: alarm_blocked hat höhere Priorität
-      # [FIX #4] Kein is_open in Condition: Schließbefehl immer senden,
-      # auch wenn Positionssensor offline/unavailable ist (float(0) → false).
-      # Benachrichtigungen nur wenn Luke laut Sensor offen war.
+      # ── ALARMO: Alarm → sofort schließen + deaktivieren ──────────────────
+      # Schließbefehl immer senden, auch bei offline Positionssensor
       - conditions:
           - condition: template
             value_template: >
@@ -1034,7 +1269,6 @@ actions:
                  and alarm_enabled
                  and alarm_blocked }}
         sequence:
-          # Schließbefehl immer senden – harmlos wenn Luke schon zu
           - action: cover.close_cover
             target:
               entity_id: !input cover_entity
@@ -1044,8 +1278,30 @@ actions:
           - action: timer.cancel
             target:
               entity_id: !input timer_helper
-          # Benachrichtigungen wenn Luke offen oder Position unbekannt
-          # [FIX #B] is_open_or_unknown: auch melden wenn Sensor ausgefallen
+          # [FIX #2] Nachlüft-Timer abbrechen
+          - if:
+              - condition: template
+                value_template: "{{ second_vent_wait_timer not in ['', none] }}"
+            then:
+              - action: timer.cancel
+                target:
+                  entity_id: !input second_vent_wait_timer
+          - if:
+              - condition: template
+                value_template: "{{ second_vent_duration_timer not in ['', none] }}"
+            then:
+              - action: timer.cancel
+                target:
+                  entity_id: !input second_vent_duration_timer
+          - if:
+              - condition: template
+                value_template: "{{ heating_enabled and heating_entity not in ['', none] }}"
+            then:
+              - action: climate.set_temperature
+                target:
+                  entity_id: !input heating_entity
+                data:
+                  temperature: "{{ heating_temp_normal | float }}"
           - if:
               - condition: template
                 value_template: "{{ is_open_or_unknown }}"
@@ -1092,8 +1348,7 @@ actions:
                       entity_id: "{{ notify_alexa_entity }}"
 
       # ── MANUELL ÖFFNEN BEI ALARM: sofort zurückschließen ─────────────────
-      # [FIX #1] Kein is_open: Schließbefehl sofort senden, nicht auf Sensor warten
-      # [FIX #7] remote_open_short statt unscharf remote_open_event
+      # Kein is_open: sofortiger Gegenbefehl ohne Warten auf Sensor
       - conditions:
           - condition: template
             value_template: >
@@ -1108,6 +1363,20 @@ actions:
               entity_id: !input timer_helper
           - if:
               - condition: template
+                value_template: "{{ second_vent_wait_timer not in ['', none] }}"
+            then:
+              - action: timer.cancel
+                target:
+                  entity_id: !input second_vent_wait_timer
+          - if:
+              - condition: template
+                value_template: "{{ second_vent_duration_timer not in ['', none] }}"
+            then:
+              - action: timer.cancel
+                target:
+                  entity_id: !input second_vent_duration_timer
+          - if:
+              - condition: template
                 value_template: "{{ notify_persistent_enabled }}"
             then:
               - action: input_text.set_value
@@ -1118,13 +1387,13 @@ actions:
                     {{ now().strftime('%d.%m. %H:%M') }} –
                     🚨 Öffnung bei Alarm verhindert
 
-      # ── FALLBACK: position_changed während Alarm offen ────────────────────
-      # [FIX #1] Race-Condition: Luke wird erst nach Tastendruck als offen erkannt
+      # ── FALLBACK: position_changed während Alarm ──────────────────────────
+      # Race-Condition: Luke als offen erkannt nachdem Tastendruck-Event kam
       - conditions:
           - condition: trigger
             id: position_changed
           - condition: template
-            value_template: "{{ alarm_blocked and is_open_or_unknown }}"
+            value_template: "{{ alarm_blocked and is_open }}"
         sequence:
           - action: cover.close_cover
             target:
@@ -1132,6 +1401,20 @@ actions:
           - action: timer.cancel
             target:
               entity_id: !input timer_helper
+          - if:
+              - condition: template
+                value_template: "{{ second_vent_wait_timer not in ['', none] }}"
+            then:
+              - action: timer.cancel
+                target:
+                  entity_id: !input second_vent_wait_timer
+          - if:
+              - condition: template
+                value_template: "{{ second_vent_duration_timer not in ['', none] }}"
+            then:
+              - action: timer.cancel
+                target:
+                  entity_id: !input second_vent_duration_timer
           - if:
               - condition: template
                 value_template: "{{ notify_persistent_enabled }}"
@@ -1149,14 +1432,8 @@ actions:
       # ════════════════════════════════════════════════════════════════════════
 
       # ── GESPERRTES WETTER: Wetterwechsel → sofort schließen ──────────────
-      # [FIX #A] Smarter Timer-Guard: unterscheidet normale Lüftung von Override.
-      # Schließen wenn:
-      #   a) Kein Timer aktiv (keine Lüftung läuft), ODER
-      #   b) Timer aktiv UND Wetter wechselt NEU in gesperrte Klasse
-      #      (d.h. vorher war Wetter nicht gesperrt → normale Lüftung läuft)
-      # Nicht schließen wenn:
-      #   Timer aktiv UND Wetter war bereits gesperrt
-      #      (= bewusste manuelle Override-Öffnung läuft)
+      # Timer-Guard: nicht schließen wenn Override-Öffnung läuft
+      # (Timer aktiv UND Wetter war bereits gesperrt = bewusste Override-Öffnung)
       - conditions:
           - condition: trigger
             id: weather_changed
@@ -1178,6 +1455,30 @@ actions:
           - action: timer.cancel
             target:
               entity_id: !input timer_helper
+          # [FIX #2] Nachlüft-Timer abbrechen
+          - if:
+              - condition: template
+                value_template: "{{ second_vent_wait_timer not in ['', none] }}"
+            then:
+              - action: timer.cancel
+                target:
+                  entity_id: !input second_vent_wait_timer
+          - if:
+              - condition: template
+                value_template: "{{ second_vent_duration_timer not in ['', none] }}"
+            then:
+              - action: timer.cancel
+                target:
+                  entity_id: !input second_vent_duration_timer
+          - if:
+              - condition: template
+                value_template: "{{ heating_enabled and heating_entity not in ['', none] }}"
+            then:
+              - action: climate.set_temperature
+                target:
+                  entity_id: !input heating_entity
+                data:
+                  temperature: "{{ heating_temp_normal | float }}"
           - if:
               - condition: template
                 value_template: "{{ notify_app_enabled }}"
@@ -1220,10 +1521,8 @@ actions:
                   entity_id: "{{ notify_alexa_entity }}"
 
       # ── MANUELL ÖFFNEN BEI GESPERRTEM WETTER: auf bad_weather öffnen ─────
-      # [CHANGE] Nicht sperren, sondern auf eingeschränkte Position öffnen.
-      # [FIX #1] Kein is_open: sofortiger Öffnungsbefehl, nicht auf Sensor warten.
-      # Alexa immer kritisch mit Wetterzustand und optionaler DWD-Warnung.
-      # Nur manuelles Schließen beendet früher als Timer.
+      # Kein is_open: sofortiger Öffnungsbefehl auf Minimalposition
+      # Alexa immer kritisch (alexa_ready, nicht alexa_critical)
       - conditions:
           - condition: template
             value_template: >
@@ -1237,28 +1536,44 @@ actions:
           - action: input_boolean.turn_off
             target:
               entity_id: !input pause_helper
+          # [FIX #3] Bei Frost + gesperrtem Wetter kleinste Position wählen
           - action: cover.set_cover_position
             target:
               entity_id: !input cover_entity
             data:
-              position: "{{ position_bad_weather | int }}"
+              position: >
+                {% if frost_active %}
+                  {{ [position_bad_weather | int, frost_position | int] | min }}
+                {% else %}
+                  {{ position_bad_weather | int }}
+                {% endif %}
           - action: timer.start
             target:
               entity_id: !input timer_helper
             data:
-              duration: "{{ max_open_duration | int * 60 }}"
+              duration: "{{ effective_max_duration | int * 60 }}"
+          - if:
+              - condition: template
+                value_template: "{{ heating_enabled and heating_entity not in ['', none] }}"
+            then:
+              - action: climate.set_temperature
+                target:
+                  entity_id: !input heating_entity
+                data:
+                  temperature: "{{ heating_temp_vent | float }}"
           - if:
               - condition: template
                 value_template: "{{ notify_app_enabled }}"
             then:
               - action: "{{ notify_app_service }}"
                 data:
-                  title: "⚠️ Dachluke manuell geöffnet (Wetter gesperrt)"
+                  title: "⚠️ Manuell geöffnet (Wetter gesperrt)"
                   message: >
-                    Manuell geöffnet auf {{ position_bad_weather }}%
+                    Manuell geöffnet auf {{ manual_blocked_weather_position }}%
                     trotz gesperrtem Wetter ({{ states(weather_entity) }}).
+                    {% if frost_active %}❄️ Frostmodus aktiv.{% endif %}
                     {% if dwd_warning_active %}{{ dwd_warning_text }}{% endif %}
-                    Schließt nach {{ max_open_duration }} min oder manuell.
+                    Schließt nach {{ effective_max_duration }} min.
           - if:
               - condition: template
                 value_template: "{{ notify_persistent_enabled }}"
@@ -1268,8 +1583,9 @@ actions:
                   notification_id: dachluke_bad
                   title: "⚠️ Manuell geöffnet (Wetter gesperrt)"
                   message: >
-                    {{ position_bad_weather }}% trotz
+                    {{ manual_blocked_weather_position }}% trotz
                     {{ states(weather_entity) }}.
+                    {% if frost_active %}❄️ Frost.{% endif %}
                     {% if dwd_warning_active %}{{ dwd_warning_text }}{% endif %}
               - action: input_text.set_value
                 target:
@@ -1277,9 +1593,9 @@ actions:
                 data:
                   value: >
                     {{ now().strftime('%d.%m. %H:%M') }} –
-                    ⚠️ Manuell {{ position_bad_weather }}%
+                    ⚠️ Manuell {{ manual_blocked_weather_position }}%
                     trotz {{ states(weather_entity) }}
-          # Alexa immer kritisch (kein alexa_all Check) bei gesperrtem Wetter
+                    {% if frost_active %}❄️{% endif %}
           - if:
               - condition: template
                 value_template: "{{ alexa_ready }}"
@@ -1291,17 +1607,14 @@ actions:
                     Achtung. Dachluke manuell geöffnet trotz gesperrtem Wetter
                     {{ states(weather_entity) }}.
                     {% if dwd_warning_active %}{{ dwd_warning_text }}{% endif %}
-                    Öffnung auf {{ position_bad_weather }} Prozent.
-                    Schließt nach {{ max_open_duration }} Minuten.
+                    Öffnung auf {{ manual_blocked_weather_position }} Prozent.
+                    Schließt nach {{ effective_max_duration }} Minuten.
                     </prosody>
                 target:
                   entity_id: "{{ notify_alexa_entity }}"
 
       # ── FALLBACK: position_changed bei gesperrtem Wetter ─────────────────
-      # [FIX #1] Race-Condition Fallback: schließt wenn Luke nachträglich
-      # als offen erkannt wird und das Wetter gesperrt ist.
-      # NICHT wenn die Luke manuell bei gesperrtem Wetter geöffnet wurde
-      # (das ist gewollt – unterschieden über timer-Status).
+      # Race-Condition: Luke nachträglich als offen erkannt, kein Timer aktiv
       - conditions:
           - condition: trigger
             id: position_changed
@@ -1313,6 +1626,29 @@ actions:
           - action: cover.close_cover
             target:
               entity_id: !input cover_entity
+          - if:
+              - condition: template
+                value_template: "{{ second_vent_wait_timer not in ['', none] }}"
+            then:
+              - action: timer.cancel
+                target:
+                  entity_id: !input second_vent_wait_timer
+          - if:
+              - condition: template
+                value_template: "{{ second_vent_duration_timer not in ['', none] }}"
+            then:
+              - action: timer.cancel
+                target:
+                  entity_id: !input second_vent_duration_timer
+          - if:
+              - condition: template
+                value_template: "{{ heating_enabled and heating_entity not in ['', none] }}"
+            then:
+              - action: climate.set_temperature
+                target:
+                  entity_id: !input heating_entity
+                data:
+                  temperature: "{{ heating_temp_normal | float }}"
           - if:
               - condition: template
                 value_template: "{{ notify_persistent_enabled }}"
@@ -1355,13 +1691,36 @@ actions:
             value_template: >
               {{ trigger.id == 'manual_close' or remote_close_short }}
         sequence:
-          # [FIX #1] Timer abbrechen damit kein späterer "Zeitablauf" kommt
           - action: timer.cancel
             target:
               entity_id: !input timer_helper
+          # [FIX #2] Nachlüft-Timer abbrechen
+          - if:
+              - condition: template
+                value_template: "{{ second_vent_wait_timer not in ['', none] }}"
+            then:
+              - action: timer.cancel
+                target:
+                  entity_id: !input second_vent_wait_timer
+          - if:
+              - condition: template
+                value_template: "{{ second_vent_duration_timer not in ['', none] }}"
+            then:
+              - action: timer.cancel
+                target:
+                  entity_id: !input second_vent_duration_timer
           - action: input_boolean.turn_on
             target:
               entity_id: !input pause_helper
+          - if:
+              - condition: template
+                value_template: "{{ heating_enabled and heating_entity not in ['', none] }}"
+            then:
+              - action: climate.set_temperature
+                target:
+                  entity_id: !input heating_entity
+                data:
+                  temperature: "{{ heating_temp_normal | float }}"
           - if:
               - condition: template
                 value_template: "{{ notify_app_enabled }}"
@@ -1371,7 +1730,6 @@ actions:
                   title: "⏸️ Dachluke-Automatik pausiert"
                   message: >
                     Manuell geschlossen – pausiert für {{ pause_duration }} min.
-                    Langer Druck Öffnen zum dauerhaften Aktivieren.
           - if:
               - condition: template
                 value_template: "{{ notify_persistent_enabled }}"
@@ -1397,14 +1755,13 @@ actions:
                 data:
                   message: >
                     <prosody volume='{{ notify_alexa_volume }}'>
-                    Dachluke manuell geschlossen. Automatik pausiert.
+                    Dachluke geschlossen. Automatik pausiert.
                     </prosody>
                 target:
                   entity_id: "{{ notify_alexa_entity }}"
 
       # ── MANUELLE ÖFFNUNG ERKANNT: Timer starten ───────────────────────────
-      # [FIX #3] Nur disabled_helper sperrt, nicht temporäre Pause.
-      # Pause wird beim manuellen Öffnen aufgehoben.
+      # Nur disabled_helper sperrt. Temporäre Pause wird aufgehoben.
       - conditions:
           - condition: template
             value_template: >
@@ -1424,7 +1781,16 @@ actions:
             target:
               entity_id: !input timer_helper
             data:
-              duration: "{{ max_open_duration | int * 60 }}"
+              duration: "{{ effective_max_duration | int * 60 }}"
+          - if:
+              - condition: template
+                value_template: "{{ heating_enabled and heating_entity not in ['', none] }}"
+            then:
+              - action: climate.set_temperature
+                target:
+                  entity_id: !input heating_entity
+                data:
+                  temperature: "{{ heating_temp_vent | float }}"
           - if:
               - condition: template
                 value_template: "{{ notify_app_enabled }}"
@@ -1440,7 +1806,8 @@ actions:
                     {% else %}
                     {{ current_humidity | round(0) }}% rH.
                     {% endif %}
-                    Schließt nach {{ max_open_duration }} min.
+                    {% if frost_active %}❄️ Frostmodus aktiv.{% endif %}
+                    Schließt nach {{ effective_max_duration }} min.
           - if:
               - condition: template
                 value_template: "{{ notify_persistent_enabled }}"
@@ -1451,24 +1818,15 @@ actions:
                   title: "🪟 Dachluke geöffnet"
                   message: >
                     Manuell geöffnet.
-                    {% if indoor_dew_point_available %}
-                    TP innen {{ indoor_dew_point | round(1) }}°C /
-                    außen {{ outdoor_dew_point | round(1) }}°C.
-                    {% else %}
-                    {{ current_humidity | round(0) }}% rH.
-                    {% endif %}
+                    {% if frost_active %}❄️ Frost: {{ effective_max_duration }} min.{% endif %}
               - action: input_text.set_value
                 target:
                   entity_id: !input status_helper
                 data:
                   value: >
                     {{ now().strftime('%d.%m. %H:%M') }} –
-                    🪟 Manuell geöffnet,
-                    {% if indoor_dew_point_available %}
-                    TP {{ indoor_dew_point | round(1) }}°C
-                    {% else %}
-                    {{ current_humidity | round(0) }}% rH
-                    {% endif %}
+                    🪟 Manuell geöffnet
+                    {% if frost_active %}❄️ Frost{% endif %}
           - if:
               - condition: template
                 value_template: "{{ alexa_all }}"
@@ -1478,6 +1836,7 @@ actions:
                   message: >
                     <prosody volume='{{ notify_alexa_volume }}'>
                     Dachluke manuell geöffnet. Timer gestartet.
+                    {% if frost_active %}Frostmodus aktiv.{% endif %}
                     </prosody>
                 target:
                   entity_id: "{{ notify_alexa_entity }}"
@@ -1487,9 +1846,6 @@ actions:
       # ════════════════════════════════════════════════════════════════════════
 
       # ── WETTERKORREKTUR: Position anpassen ohne Timer zurückzusetzen ──────
-      # [FIX #B] Meldungen enthalten jetzt "altes Wetter → neues Wetter"
-      # und Positionsänderung "von X% auf Y%".
-      # trigger.from_state defensiv mit is not none abgesichert.
       - conditions:
           - condition: trigger
             id: weather_changed
@@ -1584,14 +1940,24 @@ actions:
               entity_id: !input cover_entity
           - if:
               - condition: template
+                value_template: "{{ heating_enabled and heating_entity not in ['', none] }}"
+            then:
+              - action: climate.set_temperature
+                target:
+                  entity_id: !input heating_entity
+                data:
+                  temperature: "{{ heating_temp_normal | float }}"
+          - if:
+              - condition: template
                 value_template: "{{ notify_app_enabled }}"
             then:
               - action: "{{ notify_app_service }}"
                 data:
                   title: "⏱️ Dachluke geschlossen"
                   message: >
-                    Maximale Öffnungsdauer ({{ max_open_duration }} min)
+                    Maximale Öffnungsdauer ({{ effective_max_duration }} min)
                     erreicht – automatisch geschlossen.
+                    {% if frost_active %}❄️ Frostmodus war aktiv.{% endif %}
           - if:
               - condition: template
                 value_template: "{{ notify_persistent_enabled }}"
@@ -1609,7 +1975,7 @@ actions:
                 data:
                   value: >
                     {{ now().strftime('%d.%m. %H:%M') }} –
-                    ⏱️ Zwangsschließung nach {{ max_open_duration }} min
+                    ⏱️ Zwangsschließung nach {{ effective_max_duration }} min
           - if:
               - condition: template
                 value_template: "{{ alexa_critical }}"
@@ -1622,23 +1988,203 @@ actions:
                     </prosody>
                 target:
                   entity_id: "{{ notify_alexa_entity }}"
+          # ── ZWEITES NACHLÜFTEN (optional) ─────────────────────────────────
+          # [FIX B2] Kein delay mehr – Wartezeit-Timer startet stattdessen.
+          # Sicherheitsereignisse werden nicht blockiert.
+          - if:
+              - condition: template
+                value_template: >
+                  {{ second_vent_enabled
+                     and second_vent_wait_timer not in ['', none]
+                     and second_vent_duration_timer not in ['', none]
+                     and not alarm_blocked
+                     and not weather_blocked
+                     and not automation_blocked }}
+            then:
+              - action: timer.start
+                target:
+                  entity_id: !input second_vent_wait_timer
+                data:
+                  duration: "{{ second_vent_wait | int * 60 }}"
+
+      # ════════════════════════════════════════════════════════════════════════
+      # PRIORITÄT 6b: ZWEITES NACHLÜFTEN – WARTEZEIT ABGELAUFEN
+      # ════════════════════════════════════════════════════════════════════════
+
+      # ── ZWEITES NACHLÜFTEN: Wartezeit abgelaufen → Feuchte prüfen ────────
+      # [FIX B2] Frische states() lesen nach Wartezeit, nicht veraltete Variablen
+      - conditions:
+          - condition: trigger
+            id: second_vent_wait_elapsed
+          - condition: template
+            value_template: "{{ second_vent_enabled }}"
+        sequence:
+          - variables:
+              fresh_humidity: "{{ states(humidity_sensor) | float(0) }}"
+              fresh_alarm_blocked: >
+                {% if alarm_enabled and alarm_entity not in ['', none] %}
+                  {{ states(alarm_entity) in alarm_states }}
+                {% else %}
+                  false
+                {% endif %}
+              fresh_weather_blocked: >
+                {{ states(weather_entity) in blocked_weather_conditions }}
+              fresh_disabled: >
+                {{ is_state(disabled_helper, 'on') }}
+              fresh_paused: >
+                {{ is_state(pause_helper, 'on') }}
+              # [FIX #A] Haupt-Timer aktiv = neue Lüftung läuft → nicht eingreifen
+              fresh_timer_active: >
+                {{ is_state(timer_helper, 'active') }}
+          - if:
+              - condition: template
+                value_template: >
+                  {{ fresh_humidity > (second_vent_threshold | float)
+                     and not fresh_alarm_blocked
+                     and not fresh_weather_blocked
+                     and not fresh_disabled
+                     and not fresh_paused
+                     and not fresh_timer_active }}
+            then:
+              - action: cover.set_cover_position
+                target:
+                  entity_id: !input cover_entity
+                data:
+                  position: "{{ target_position | int }}"
+              - if:
+                  - condition: template
+                    value_template: >
+                      {{ heating_enabled
+                         and heating_entity not in ['', none]
+                         and second_vent_heating_reduction }}
+                then:
+                  - action: climate.set_temperature
+                    target:
+                      entity_id: !input heating_entity
+                    data:
+                      temperature: "{{ heating_temp_vent | float }}"
+              - action: timer.start
+                target:
+                  entity_id: !input second_vent_duration_timer
+                data:
+                  duration: "{{ second_vent_duration | int * 60 }}"
+              - if:
+                  - condition: template
+                    value_template: "{{ notify_persistent_enabled }}"
+                then:
+                  - action: input_text.set_value
+                    target:
+                      entity_id: !input status_helper
+                    data:
+                      value: >
+                        {{ now().strftime('%d.%m. %H:%M') }} –
+                        🔄 Zweites Nachlüften ({{ fresh_humidity | round(0) }}% rH)
+              - if:
+                  - condition: template
+                    value_template: "{{ alexa_all }}"
+                then:
+                  - action: notify.send_message
+                    data:
+                      message: >
+                        <prosody volume='{{ notify_alexa_volume }}'>
+                        Zweites Nachlüften. Restfeuchte {{ fresh_humidity | round(0) }} Prozent.
+                        </prosody>
+                    target:
+                      entity_id: "{{ notify_alexa_entity }}"
+            else:
+              # Feuchte niedrig genug oder gesperrt – kein zweites Lüften nötig
+              - if:
+                  - condition: template
+                    value_template: "{{ notify_persistent_enabled }}"
+                then:
+                  - action: input_text.set_value
+                    target:
+                      entity_id: !input status_helper
+                    data:
+                      value: >
+                        {{ now().strftime('%d.%m. %H:%M') }} –
+                        ✅ Zweites Nachlüften nicht nötig
+                        ({{ fresh_humidity | round(0) }}% rH)
+
+      # ── ZWEITES NACHLÜFTEN: Dauer abgelaufen → endgültig schließen ───────
+      # [FIX #A] Nur schließen wenn Haupt-Timer nicht aktiv
+      # (neue Lüftung durch neue Person hat Vorrang)
+      - conditions:
+          - condition: trigger
+            id: second_vent_duration_elapsed
+          - condition: template
+            value_template: "{{ second_vent_enabled }}"
+          - condition: template
+            value_template: "{{ not is_state(timer_helper, 'active') }}"
+        sequence:
+          - action: cover.close_cover
+            target:
+              entity_id: !input cover_entity
+          - if:
+              - condition: template
+                value_template: >
+                  {{ heating_enabled
+                     and heating_entity not in ['', none]
+                     and second_vent_heating_reduction }}
+            then:
+              - action: climate.set_temperature
+                target:
+                  entity_id: !input heating_entity
+                data:
+                  temperature: "{{ heating_temp_normal | float }}"
+          - if:
+              - condition: template
+                value_template: "{{ notify_app_enabled }}"
+            then:
+              - action: "{{ notify_app_service }}"
+                data:
+                  title: "✅ Dachluke geschlossen"
+                  message: "Zweites Nachlüften abgeschlossen."
+          - if:
+              - condition: template
+                value_template: "{{ notify_persistent_enabled }}"
+            then:
+              - action: persistent_notification.create
+                data:
+                  notification_id: dachluke_bad
+                  title: "✅ Dachluke geschlossen"
+                  message: "Zweites Nachlüften abgeschlossen."
+              - action: input_text.set_value
+                target:
+                  entity_id: !input status_helper
+                data:
+                  value: >
+                    {{ now().strftime('%d.%m. %H:%M') }} –
+                    ✅ Zweites Nachlüften abgeschlossen
+          - if:
+              - condition: template
+                value_template: "{{ alexa_all }}"
+            then:
+              - action: notify.send_message
+                data:
+                  message: >
+                    <prosody volume='{{ notify_alexa_volume }}'>
+                    Zweites Nachlüften abgeschlossen. Dachluke geschlossen.
+                    </prosody>
+                target:
+                  entity_id: "{{ notify_alexa_entity }}"
 
       # ════════════════════════════════════════════════════════════════════════
       # PRIORITÄT 7: AUTO-ÖFFNEN / SCHLIESSEN
       # ════════════════════════════════════════════════════════════════════════
 
-      # ── AUTO-ÖFFNEN: Feuchte hoch + Licht an + geschlossen ───────────────
+      # ── AUTO-ÖFFNEN: Steigung hoch + Licht an + geschlossen ──────────────
       - conditions:
           - condition: template
             value_template: >
-              {{ trigger.id in ['humidity_changed', 'light_changed'] }}
+              {{ trigger.id in ['humidity_rise_changed', 'light_changed'] }}
           - condition: template
-            value_template: "{{ sensor_available }}"
+            value_template: "{{ sensor_available and humidity_rise_available }}"
           - condition: template
-            value_template: "{{ current_humidity >= humidity_threshold }}"
+            value_template: >
+              {{ current_humidity_rise >= (humidity_rise_threshold | float) }}
           - condition: template
             value_template: "{{ light_on }}"
-          # [FIX #1] position_available: kein Auto-Öffnen wenn Sensor offline
           - condition: template
             value_template: "{{ position_available and not is_open }}"
           - condition: template
@@ -1657,7 +2203,31 @@ actions:
             target:
               entity_id: !input timer_helper
             data:
-              duration: "{{ max_open_duration | int * 60 }}"
+              duration: "{{ effective_max_duration | int * 60 }}"
+          # [FIX #C] Alte Nachlüft-Timer canceln – neue Dusche hat Vorrang
+          - if:
+              - condition: template
+                value_template: "{{ second_vent_wait_timer not in ['', none] }}"
+            then:
+              - action: timer.cancel
+                target:
+                  entity_id: !input second_vent_wait_timer
+          - if:
+              - condition: template
+                value_template: "{{ second_vent_duration_timer not in ['', none] }}"
+            then:
+              - action: timer.cancel
+                target:
+                  entity_id: !input second_vent_duration_timer
+          - if:
+              - condition: template
+                value_template: "{{ heating_enabled and heating_entity not in ['', none] }}"
+            then:
+              - action: climate.set_temperature
+                target:
+                  entity_id: !input heating_entity
+                data:
+                  temperature: "{{ heating_temp_vent | float }}"
           - if:
               - condition: template
                 value_template: "{{ notify_app_enabled }}"
@@ -1667,10 +2237,12 @@ actions:
                   title: "🪟 Dachluke geöffnet"
                   message: >
                     Badentlüftung aktiv – {{ target_position }}% geöffnet.
+                    Steigung +{{ current_humidity_rise | round(1) }}%/5min,
                     {{ current_humidity | round(0) }}% rH,
                     Wetter: {{ states(weather_entity) }}.
+                    {% if frost_active %}❄️ Frostmodus: {{ effective_max_duration }} min.{% endif %}
                     {% if indoor_dew_point_available %}
-                    Taupunkt innen {{ indoor_dew_point | round(1) }}°C,
+                    Taupunkt innen {{ indoor_dew_point | round(1) }}°C /
                     außen {{ outdoor_dew_point | round(1) }}°C.
                     {% endif %}
           - if:
@@ -1682,8 +2254,9 @@ actions:
                   notification_id: dachluke_bad
                   title: "🪟 Dachluke geöffnet"
                   message: >
-                    Badentlüftung aktiv – {{ target_position }}% geöffnet.
+                    {{ target_position }}%, +{{ current_humidity_rise | round(1) }}%/5min,
                     {{ current_humidity | round(0) }}% rH.
+                    {% if frost_active %}❄️ Frost.{% endif %}
               - action: input_text.set_value
                 target:
                   entity_id: !input status_helper
@@ -1691,7 +2264,8 @@ actions:
                   value: >
                     {{ now().strftime('%d.%m. %H:%M') }} –
                     🪟 Auto geöffnet {{ target_position }}%,
-                    {{ current_humidity | round(0) }}% rH
+                    +{{ current_humidity_rise | round(1) }}%/5min
+                    {% if frost_active %}❄️{% endif %}
           - if:
               - condition: template
                 value_template: "{{ alexa_all }}"
@@ -1701,19 +2275,21 @@ actions:
                   message: >
                     <prosody volume='{{ notify_alexa_volume }}'>
                     Dachluke geöffnet. Lüftung aktiv.
+                    {% if frost_active %}Frostmodus aktiv.{% endif %}
                     </prosody>
                 target:
                   entity_id: "{{ notify_alexa_entity }}"
 
-      # ── AUTO-ÜBERNAHME: bereits offen, Feuchte hoch ───────────────────────
+      # ── AUTO-ÜBERNAHME: bereits offen, Steigung hoch ─────────────────────
       - conditions:
           - condition: template
             value_template: >
-              {{ trigger.id in ['humidity_changed', 'light_changed'] }}
+              {{ trigger.id in ['humidity_rise_changed', 'light_changed'] }}
           - condition: template
-            value_template: "{{ sensor_available }}"
+            value_template: "{{ sensor_available and humidity_rise_available }}"
           - condition: template
-            value_template: "{{ current_humidity >= humidity_threshold }}"
+            value_template: >
+              {{ current_humidity_rise >= (humidity_rise_threshold | float) }}
           - condition: template
             value_template: "{{ light_on }}"
           - condition: template
@@ -1734,17 +2310,44 @@ actions:
                   entity_id: !input cover_entity
                 data:
                   position: "{{ target_position | int }}"
-          # [FIX #3] Timer nur starten wenn nicht bereits aktiv –
-          # echte maximale Öffnungsdauer ab erstem Öffnen
+          # [FIX #B] Neuer Steigungspeak = neue Person duscht → Timer neu starten
+          # Licht-Trigger startet Timer nicht neu (kein Duschpeak)
           - if:
               - condition: template
-                value_template: "{{ not is_state(timer_helper, 'active') }}"
+                value_template: >
+                  {{ trigger.id == 'humidity_rise_changed' }}
             then:
               - action: timer.start
                 target:
                   entity_id: !input timer_helper
                 data:
-                  duration: "{{ max_open_duration | int * 60 }}"
+                  duration: "{{ effective_max_duration | int * 60 }}"
+              # Nachlüft-Timer canceln – neuer Steigungspeak = neue Dusche
+              - if:
+                  - condition: template
+                    value_template: "{{ second_vent_wait_timer not in ['', none] }}"
+                then:
+                  - action: timer.cancel
+                    target:
+                      entity_id: !input second_vent_wait_timer
+              - if:
+                  - condition: template
+                    value_template: "{{ second_vent_duration_timer not in ['', none] }}"
+                then:
+                  - action: timer.cancel
+                    target:
+                      entity_id: !input second_vent_duration_timer
+            else:
+              # Licht-Trigger: nur starten wenn Timer nicht läuft
+              - if:
+                  - condition: template
+                    value_template: "{{ not is_state(timer_helper, 'active') }}"
+                then:
+                  - action: timer.start
+                    target:
+                      entity_id: !input timer_helper
+                    data:
+                      duration: "{{ effective_max_duration | int * 60 }}"
           - if:
               - condition: template
                 value_template: "{{ notify_persistent_enabled }}"
@@ -1755,19 +2358,22 @@ actions:
                 data:
                   value: >
                     {{ now().strftime('%d.%m. %H:%M') }} –
-                    🔄 Lüftung aktiv,
+                    🔄 Lüftung läuft
+                    {% if trigger.id == 'humidity_rise_changed' %}
+                    (neuer Peak +{{ current_humidity_rise | round(1) }}%/5min)
+                    {% endif %},
                     {{ current_humidity | round(0) }}% rH
 
       # ── AUTO-SCHLIESSEN: Schließbedingung erfüllt ─────────────────────────
-      # [FIX #4] sensor_available OR indoor_dew_point_available:
-      # Taupunkt-Schließen greift auch wenn rF-Sensor nicht verfügbar.
-      # [FIX 0.6.8] is_open_or_unknown statt is_open: konsistent mit
-      # Timer, Alarm und Wetter – bei unbekannter Position vorsichtshalber schließen.
+      # Trigger-Mutex: Taupunkt hat Vorrang wenn verfügbar
+      # Verhindert doppelte Meldung durch simultane Trigger
       - conditions:
           - condition: template
             value_template: >
-              {{ trigger.id == 'humidity_changed'
-                 or (trigger.id == 'dew_point_changed' and dew_point_enabled) }}
+              {{ (trigger.id == 'humidity_changed' and not indoor_dew_point_available)
+                 or (trigger.id == 'dew_point_changed'
+                     and dew_point_enabled
+                     and indoor_dew_point_available) }}
           - condition: template
             value_template: "{{ sensor_available or indoor_dew_point_available }}"
           - condition: template
@@ -1784,6 +2390,30 @@ actions:
           - action: timer.cancel
             target:
               entity_id: !input timer_helper
+          # [FIX #2] Nachlüft-Timer abbrechen
+          - if:
+              - condition: template
+                value_template: "{{ second_vent_wait_timer not in ['', none] }}"
+            then:
+              - action: timer.cancel
+                target:
+                  entity_id: !input second_vent_wait_timer
+          - if:
+              - condition: template
+                value_template: "{{ second_vent_duration_timer not in ['', none] }}"
+            then:
+              - action: timer.cancel
+                target:
+                  entity_id: !input second_vent_duration_timer
+          - if:
+              - condition: template
+                value_template: "{{ heating_enabled and heating_entity not in ['', none] }}"
+            then:
+              - action: climate.set_temperature
+                target:
+                  entity_id: !input heating_entity
+                data:
+                  temperature: "{{ heating_temp_normal | float }}"
           - if:
               - condition: template
                 value_template: "{{ notify_app_enabled }}"
